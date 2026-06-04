@@ -17,6 +17,7 @@
   --hero-dur: 950ms;     /* shared image expand to full-height        */
   --reveal-dur: 820ms;   /* white block slide-down over the left half */
   --pv-dur: 1150ms;      /* project-page push (slower, more deliberate) */
+  --menu-dur: 820ms;     /* menu panel slide-down over the right half  */
 
   /* Header inset — reused to seat the project copy in the bottom-left
      corner with the same spacing the KENDALL button has top-left. */
@@ -452,4 +453,96 @@ body.project-open .project-page {
   line-height: 1.5;
   color: var(--ink);
   max-width: 24rem;
+}
+
+/* ============================================================
+   MENU PANEL — slides down over the right half only
+   ============================================================ */
+.menu-panel {
+  position: fixed;
+  top: 0;
+  left: 50vw;
+  width: 50vw;
+  height: 100vh;
+  background: var(--bg);
+  z-index: 18;                 /* above page content, below the header */
+  transform: translateY(-100%);
+  transition: transform var(--menu-dur) var(--ease);
+  pointer-events: none;
+}
+
+body.menu-open .menu-panel {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Navigation — upper portion, left-aligned with a generous margin. */
+.menu-nav {
+  position: absolute;
+  top: 17vh;
+  left: 11vw;
+  right: 4vw;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-item {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.9rem, 2.7vw, 2.7rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+  margin-bottom: 2.2rem;
+  width: max-content;
+}
+
+.menu-item:last-child {
+  margin-bottom: 0;
+}
+
+/* Studio block — lower portion, clearly separated, same left edge. */
+.menu-studio {
+  position: absolute;
+  left: 11vw;
+  right: 4vw;
+  bottom: 12vh;
+  max-width: 22rem;
+  padding-bottom: 1.6rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.menu-studio__label {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 0.72rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 1.2rem;
+}
+
+.menu-studio__body {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* Staggered fade-in for the nav items and the studio block. */
+.menu-item,
+.menu-studio {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 640ms var(--ease), transform 640ms var(--ease);
+}
+
+.menu-panel .menu-item.is-in,
+.menu-panel .menu-studio.is-in {
+  opacity: 1;
+  transform: translateY(0);
 }

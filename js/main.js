@@ -42,6 +42,7 @@ for (let t = 0; t < M; t++) {
 // --- State ----------------------------------------------------
 let pos = 0;                          // unbounded position counter
 let isOpen = false;                   // true while the project page is shown
+let menuOpen = false;                 // true while the dropdown menu is shown
 const prevRel = new Array(M).fill(null);
 let nameStep = 0;                     // px between names
 let thumbStep = 0;                    // px between thumbnails
@@ -113,6 +114,7 @@ render();
 new StepScroll({
   target: document.querySelector(".shell"),
   onStep: (dir) => {
+    if (menuOpen) return;         // menu is open: nothing behind it moves
     if (isOpen) {                 // on the project view: page between project pages
       if (entering) return;
       // One page per gesture: ignore further steps until the slow push
@@ -376,6 +378,52 @@ brandEl.addEventListener("click", (e) => {
   if (isOpen) close();
 });
 
+// ============================================================
+// MENU — slide-down panel over the right half (independent overlay;
+// nothing behind it moves or changes).
+// ============================================================
+const menuBtn = document.querySelector(".menu");
+const menuPanel = document.getElementById("menuPanel");
+const menuFadeEls = [...menuPanel.querySelectorAll(".menu-item, .menu-studio")];
+const menuTimers = [];
+
+function openMenu() {
+  if (menuOpen) return;
+  menuOpen = true;
+  document.body.classList.add("menu-open");
+  menuPanel.setAttribute("aria-hidden", "false");
+  menuBtn.textContent = "CLOSE";
+  menuBtn.setAttribute("aria-label", "Close menu");
+  menuBtn.setAttribute("aria-expanded", "true");
+
+  // Fade the items in one at a time once the panel has settled.
+  menuFadeEls.forEach((el) => el.classList.remove("is-in"));
+  const start = cssMs("--menu-dur") * 0.55;
+  menuFadeEls.forEach((el, i) => {
+    menuTimers.push(setTimeout(() => el.classList.add("is-in"), start + i * 110));
+  });
+}
+
+function closeMenu() {
+  if (!menuOpen) return;
+  menuOpen = false;
+  document.body.classList.remove("menu-open");
+  menuPanel.setAttribute("aria-hidden", "true");
+  menuBtn.textContent = "MENU";
+  menuBtn.setAttribute("aria-label", "Open menu");
+  menuBtn.setAttribute("aria-expanded", "false");
+
+  menuTimers.forEach(clearTimeout);
+  menuTimers.length = 0;
+  menuFadeEls.forEach((el) => el.classList.remove("is-in"));
+}
+
+menuBtn.addEventListener("click", () => {
+  menuOpen ? closeMenu() : openMenu();
+});
+
 window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && isOpen) close();
+  if (e.key !== "Escape") return;
+  if (menuOpen) closeMenu();
+  else if (isOpen) close();
 });

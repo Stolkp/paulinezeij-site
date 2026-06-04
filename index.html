@@ -20,7 +20,7 @@
     <!-- Persistent header above both panels -->
     <header class="header">
       <a class="brand" href="index.html" aria-label="Kendall — home">KENDALL</a>
-      <button class="menu" type="button" aria-label="Open menu">MENU</button>
+      <button class="menu" type="button" aria-label="Open menu" aria-expanded="false">MENU</button>
     </header>
 
     <div class="split">
@@ -60,6 +60,20 @@
     <!-- PROJECT VIEW — paging layer for the further project pages,
          built on demand by the script. -->
     <div class="pv" id="pv" aria-hidden="true"></div>
+
+    <!-- MENU — white panel sliding down over the right half only. -->
+    <div class="menu-panel" id="menuPanel" aria-hidden="true">
+      <nav class="menu-nav">
+        <a class="menu-item">Home</a>
+        <a class="menu-item">About</a>
+        <a class="menu-item">Projects</a>
+        <a class="menu-item">Contact</a>
+      </nav>
+      <div class="menu-studio">
+        <span class="menu-studio__label">Kendall Studios</span>
+        <p class="menu-studio__body">Kendall Studios is a photography practice working across portraiture, editorial, and art direction, making quiet, considered images built on natural light and a careful eye for detail.</p>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="js/main.js"></script>

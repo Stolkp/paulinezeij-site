@@ -7,6 +7,10 @@
 // ============================================================
 import { projects, imgSrc, imgAt } from "./projects.js";
 import { StepScroll } from "./stepscroll.js";
+import { runLoader } from "./loader.js";
+
+// First-load intro overlay (built on top of the home page beneath it).
+runLoader();
 
 const namesEl = document.getElementById("names");
 const carouselEl = document.getElementById("carousel");

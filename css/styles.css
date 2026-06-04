@@ -546,3 +546,65 @@ body.menu-open .menu-panel {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ============================================================
+   LOADER — first-load intro: two images push in (opposite
+   directions) with KENDALL breathing across the middle.
+   ============================================================ */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 50;                 /* above everything, including the header */
+  overflow: hidden;
+}
+
+.loader-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--bg);       /* hides the home page until the reveal */
+}
+
+.loader-half {
+  position: absolute;
+  top: 0;
+  height: 100vh;
+  width: 50vw;
+  z-index: 1;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.loader-half--left {
+  left: 0;
+}
+
+.loader-half--right {
+  left: 50vw;
+}
+
+.loader-half img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.loader-word {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  white-space: nowrap;
+  font-family: var(--serif);
+  font-weight: 500;
+  color: #fff;
+  font-size: clamp(2.6rem, 7.5vw, 6.5rem);
+  /* leading text-indent mirrors the trailing letter-spacing so the
+     word stays optically centred as the tracking opens out. */
+  letter-spacing: 0.15em;
+  text-indent: 0.15em;
+  will-change: letter-spacing, text-indent, opacity;
+  pointer-events: none;
+}

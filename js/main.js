@@ -47,6 +47,8 @@ for (let t = 0; t < M; t++) {
 let pos = 0;                          // unbounded position counter
 let isOpen = false;                   // true while the project page is shown
 let menuOpen = false;                 // true while the dropdown menu is shown
+let heroEl = null;                    // the thumbnail currently expanded (manual control)
+let heroSlot = null;                  // its exact carousel-slot box (px) for a clean return
 const prevRel = new Array(M).fill(null);
 let nameStep = 0;                     // px between names
 let thumbStep = 0;                    // px between thumbnails
@@ -89,6 +91,7 @@ function applyTile(t, rel) {
 function render() {
   if (isOpen) return;             // carousel is frozen on the project page
   for (let t = 0; t < M; t++) {
+    if (thumbEls[t] === heroEl) continue;   // hero is under manual transition control
     const rel = relOf(t);
     // If a tile jumped to the far side of the ring (the wrap seam),
     // move it without animating — it's deep off-screen and hidden.
@@ -156,7 +159,6 @@ const sectionEls = [...projectPage.querySelectorAll(".proj-section")];
 const brandEl = document.querySelector(".brand");
 const pvEl = document.getElementById("pv");
 
-let heroEl = null;                // the thumbnail currently expanded
 let entering = false;            // true during the entry animation (paging locked)
 let pvCooldownUntil = 0;         // gates paging to one page per scroll gesture
 let pvDurMs = 0;                  // cached push duration (ms)
@@ -267,13 +269,29 @@ function open(thumbEl) {
   // Reuse the very same image node: expand its container to fill the
   // right half. No second image is ever created or loaded.
   heroEl.classList.remove("is-current");   // stop hover state
+
+  // Pin the hero to its exact current pixel box first (carousel-relative,
+  // with no transform). Animating plain top/left/width/height from here —
+  // instead of a percentage translate while the size changes — avoids the
+  // subtle jump at the start of the expansion.
+  const r = heroEl.getBoundingClientRect();
+  const relLeft = r.left - window.innerWidth * 0.5;   // carousel = right half
+  heroSlot = { left: relLeft, top: r.top, w: r.width, h: r.height };
   heroEl.style.zIndex = "12";
+  heroEl.style.transition = "none";
+  heroEl.style.transform = "none";
+  heroEl.style.left = `${relLeft}px`;
+  heroEl.style.top = `${r.top}px`;
+  heroEl.style.width = `${r.width}px`;
+  heroEl.style.height = `${r.height}px`;
+  void heroEl.offsetWidth;                  // commit the pinned box
+
+  // Now expand to fill the right half (pure rect animation).
   heroEl.style.transition = HERO_TRANSITION;
-  heroEl.style.top = "0";
   heroEl.style.left = "0";
+  heroEl.style.top = "0";
   heroEl.style.width = "50vw";
   heroEl.style.height = "100vh";
-  heroEl.style.transform = "none";
 
   // Fade the other thumbnails away so nothing peeks behind the hero.
   thumbEls.forEach((el) => {
@@ -329,30 +347,32 @@ function contractHero() {
   sectionTimers.length = 0;
   sectionEls.forEach((el) => el.classList.remove("is-in"));
 
+  // Contract back to the exact pixel box it started from (no transform),
+  // mirroring the clean expansion so there is no reverse jump.
   const el = heroEl;
   el.style.transition = HERO_TRANSITION;
-  el.style.top = "50%";
-  el.style.left = "50%";
-  el.style.width = "var(--thumb-w)";
-  el.style.height = "var(--thumb-h)";
-  el.style.transform = "translate(-50%, -50%) scale(1)";
+  el.style.left = `${heroSlot.left}px`;
+  el.style.top = `${heroSlot.top}px`;
+  el.style.width = `${heroSlot.w}px`;
+  el.style.height = `${heroSlot.h}px`;
 
-  const done = (e) => {
-    if (e.propertyName !== "width") return;
-    el.removeEventListener("transitionend", done);
+  // Clean up on a timer (robust even if the transition is a no-op and
+  // fires no transitionend) and hand control back to the carousel.
+  setTimeout(() => {
     el.style.transition = "";
     el.style.top = "";
     el.style.left = "";
     el.style.width = "";
     el.style.height = "";
+    el.style.transform = "";
     el.style.zIndex = "";
     heroEl = null;
+    heroSlot = null;
     pvEl.innerHTML = "";          // tear down the paging layer
     pvLeft = [];
     pvRight = [];
     render();
-  };
-  el.addEventListener("transitionend", done);
+  }, cssMs("--hero-dur") + 40);
 
   render();                       // restore the other thumbnails
 }

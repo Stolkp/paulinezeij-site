@@ -14,6 +14,8 @@
   /* Motion — gentle, luxurious ease-out */
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --dur: 720ms;
+  --hero-dur: 950ms;     /* shared image expand to full-height        */
+  --reveal-dur: 820ms;   /* white block slide-down over the left half */
 
   /* Layout rhythm (tuned for the opposite-direction carousel) */
   --pad-left: 5.4vw;     /* left text inset on the left panel        */
@@ -215,4 +217,130 @@ body {
   height: 100%;
   object-fit: cover;
   display: block;
+  /* small smooth zoom on hover */
+  transition: transform 600ms var(--ease);
+}
+
+/* ---- Hover affordance (active/centre thumbnail only) -------- */
+.thumb__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(21, 21, 21, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 450ms var(--ease);
+}
+
+.thumb__plus {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.thumb__plus::before,
+.thumb__plus::after {
+  content: "";
+  position: absolute;
+  background: #fff;
+}
+
+.thumb__plus::before {
+  top: 0;
+  left: 50%;
+  width: 1.5px;
+  height: 100%;
+  transform: translateX(-50%);
+}
+
+.thumb__plus::after {
+  top: 50%;
+  left: 0;
+  height: 1.5px;
+  width: 100%;
+  transform: translateY(-50%);
+}
+
+/* Only the centred, clickable thumbnail reacts to hover. */
+.thumb.is-current {
+  cursor: pointer;
+}
+
+.thumb.is-current:hover img {
+  transform: scale(1.05);
+}
+
+.thumb.is-current:hover .thumb__overlay {
+  opacity: 1;
+}
+
+/* ============================================================
+   PROJECT PAGE — white reveal + text sections
+   ============================================================ */
+.project-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 50vw;
+  height: 100vh;
+  background: var(--bg);
+  z-index: 15;                 /* above the home left panel, below header */
+  /* White block sits above the viewport, then slides down to reveal. */
+  transform: translateY(-100%);
+  transition: transform var(--reveal-dur) var(--ease);
+  pointer-events: none;
+}
+
+body.project-open .project-page {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.project-page__inner {
+  position: absolute;
+  left: var(--pad-left);
+  right: 3rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.proj-section {
+  width: 22rem;
+  max-width: 32vw;
+  padding-bottom: 1.7rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid var(--hairline);
+  /* Each section fades in gently once the white area has settled. */
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 720ms var(--ease), transform 720ms var(--ease);
+}
+
+.proj-section:last-child {
+  margin-bottom: 0;
+}
+
+.proj-section.is-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.proj-section__head {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 0.72rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 1.1rem;
+}
+
+.proj-section__body {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--muted);
 }

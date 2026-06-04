@@ -14,3 +14,6 @@ export const projects = [
 const CACHE_BUST = Date.now();
 
 export const imgSrc = (p) => `Visuals/${p.folder}/${p.cover}?v=${CACHE_BUST}`;
+
+// Any image within a project's set, e.g. imgAt(p, "02.jpg").
+export const imgAt = (p, file) => `Visuals/${p.folder}/${file}?v=${CACHE_BUST}`;

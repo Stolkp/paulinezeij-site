@@ -5,7 +5,7 @@
 // same project. Scrolling never ends — past the last project it
 // loops back to the first, and vice-versa.
 // ============================================================
-import { projects, imgSrc } from "./projects.js";
+import { projects, imgSrc, imgAt } from "./projects.js";
 import { StepScroll } from "./stepscroll.js";
 
 const namesEl = document.getElementById("names");
@@ -113,7 +113,10 @@ render();
 new StepScroll({
   target: document.querySelector(".shell"),
   onStep: (dir) => {
-    if (isOpen) return;           // freeze the carousel on the project page
+    if (isOpen) {                 // on the project view: page between project pages
+      if (!entering) pvStep(dir);
+      return;
+    }
     pos += dir;
     render();
   },
@@ -125,14 +128,33 @@ window.addEventListener("resize", () => {
 });
 
 // ============================================================
-// Home -> Project page transition (shared-element)
+// Project view: shared-element entry, then a 3-page push pager.
+//
+//   page 0  left: text sections (white)   right: hero image
+//   page 1  left: full-bleed image        right: small image in white
+//   page 2  left: full-bleed image        right: attribution + quote
+//
+// Entry (home -> page 0) reuses the very same thumbnail image node
+// (shared element). Paging between pages 0/1/2 uses the .pv layer,
+// whose two tracks push in opposite vertical directions.
 // ============================================================
 const projectPage = document.getElementById("projectPage");
 const sectionEls = [...projectPage.querySelectorAll(".proj-section")];
 const brandEl = document.querySelector(".brand");
+const pvEl = document.getElementById("pv");
 
 let heroEl = null;                // the thumbnail currently expanded
+let entering = false;            // true during the entry animation (paging locked)
+let pg = 0;                       // current project page (0..2)
+let pvLeft = [];                  // left track panels
+let pvRight = [];                 // right track panels
 const sectionTimers = [];
+let revealTimer = null;
+
+const QUOTE = {
+  name: "Jane Doe",
+  text: "Some people think design means how it looks. But if you dig deeper, it's really how it works.",
+};
 
 // Transition string used while the shared image expands / contracts.
 const HERO_TRANSITION =
@@ -140,10 +162,90 @@ const HERO_TRANSITION =
     .map((p) => `${p} var(--hero-dur) var(--ease)`)
     .join(", ");
 
+// ---- Build the paging layer for a given project ----------------
+function buildPV(project) {
+  // Reuse the page-0 text sections (clone so the page-0 underlay keeps its own).
+  const sectionsClone = projectPage
+    .querySelector(".project-page__inner")
+    .cloneNode(true);
+  sectionsClone
+    .querySelectorAll(".proj-section")
+    .forEach((s) => s.classList.add("is-in"));
+
+  pvEl.innerHTML = "";
+
+  const leftTrack = document.createElement("div");
+  leftTrack.className = "pv-track pv-track--left";
+  const rightTrack = document.createElement("div");
+  rightTrack.className = "pv-track pv-track--right";
+
+  const panel = (cls, inner) => {
+    const el = document.createElement("div");
+    el.className = `pv-panel ${cls}`;
+    if (inner) el.append(inner);
+    return el;
+  };
+  const imgPanel = (file) => {
+    const el = panel("pv-image");
+    el.innerHTML = `<img src="${imgAt(project, file)}" alt="${project.name}" draggable="false" />`;
+    return el;
+  };
+
+  // LEFT track: white sections, then two full-bleed images.
+  const leftP0 = panel("pv-white");
+  leftP0.append(sectionsClone);
+  pvLeft = [leftP0, imgPanel("02.jpg"), imgPanel("04.jpg")];
+  pvLeft.forEach((el) => leftTrack.append(el));
+
+  // RIGHT track: hero image, small image in white, then quote.
+  const rightP0 = imgPanel("01.jpg");
+  const rightP1 = panel("pv-white pv-figure");
+  rightP1.innerHTML =
+    `<img class="pv-figure__img" src="${imgAt(project, "03.jpg")}" alt="${project.name}" draggable="false" />`;
+  const rightP2 = panel("pv-white pv-quote");
+  rightP2.innerHTML =
+    `<span class="pv-quote__name">${QUOTE.name}</span>` +
+    `<p class="pv-quote__text">${QUOTE.text}</p>`;
+  pvRight = [rightP0, rightP1, rightP2];
+  pvRight.forEach((el) => rightTrack.append(el));
+
+  pvEl.append(leftTrack, rightTrack);
+}
+
+// Position the panels for the current page (opposite vertical directions).
+function renderPV(animate = true) {
+  const apply = (el, y) => {
+    if (!animate) el.style.transition = "none";
+    el.style.transform = `translateY(${y}vh)`;
+    if (!animate) {
+      void el.offsetWidth;
+      el.style.transition = "";
+    }
+  };
+  pvLeft.forEach((el, i) => apply(el, (i - pg) * 100));   // enters from bottom
+  pvRight.forEach((el, i) => apply(el, -(i - pg) * 100)); // enters from top
+}
+
+function pvStep(dir) {
+  const next = pg + dir;
+  if (next < 0) {            // scrolling up past the first page -> home
+    close();
+    return;
+  }
+  if (next > pvLeft.length - 1) return;   // last page: stay
+  pg = next;
+  renderPV(true);
+}
+
+// ---- Open: shared-element entry ----------------------------------
 function open(thumbEl) {
   if (isOpen) return;
   isOpen = true;
+  entering = true;
+  pg = 0;
   heroEl = thumbEl;
+  const project = projects[thumbEls.indexOf(thumbEl) % N];
+
   document.body.classList.add("project-open");
   projectPage.setAttribute("aria-hidden", "false");
 
@@ -163,7 +265,7 @@ function open(thumbEl) {
     if (el !== heroEl) el.style.opacity = "0";
   });
 
-  // Once the white block has settled, fade the sections in one by one.
+  // Fade the page-0 sections in one at a time once the white has settled.
   sectionEls.forEach((el) => el.classList.remove("is-in"));
   const revealMs = cssMs("--reveal-dur");
   sectionEls.forEach((el, i) => {
@@ -171,11 +273,40 @@ function open(thumbEl) {
       setTimeout(() => el.classList.add("is-in"), revealMs + i * 220)
     );
   });
+
+  // Pre-build the paging layer at page 0 (hidden), then reveal it once the
+  // entry has fully assembled. From then on, scrolling pages the project.
+  buildPV(project);
+  renderPV(false);                         // place panels with no animation
+  const entryMs = revealMs + (sectionEls.length - 1) * 220 + 720;
+  revealTimer = setTimeout(() => {
+    pvEl.classList.add("is-shown");
+    entering = false;
+  }, entryMs);
 }
 
+// ---- Close: back to the home browser ----------------------------
 function close() {
   if (!isOpen) return;
   isOpen = false;
+  entering = false;
+  clearTimeout(revealTimer);
+
+  // Fade the paging layer away (cross-fades inner pages back to page 0),
+  // then run the shared-element contract from page 0.
+  if (pvEl.classList.contains("is-shown")) {
+    pvEl.classList.remove("is-shown");
+    setTimeout(() => {
+      pg = 0;
+      renderPV(false);
+      contractHero();
+    }, 360);
+  } else {
+    contractHero();
+  }
+}
+
+function contractHero() {
   document.body.classList.remove("project-open");
   projectPage.setAttribute("aria-hidden", "true");
 
@@ -183,7 +314,6 @@ function close() {
   sectionTimers.length = 0;
   sectionEls.forEach((el) => el.classList.remove("is-in"));
 
-  // Contract the shared image back into its carousel slot.
   const el = heroEl;
   el.style.transition = HERO_TRANSITION;
   el.style.top = "50%";
@@ -195,7 +325,6 @@ function close() {
   const done = (e) => {
     if (e.propertyName !== "width") return;
     el.removeEventListener("transitionend", done);
-    // Hand control back to the carousel renderer.
     el.style.transition = "";
     el.style.top = "";
     el.style.left = "";
@@ -203,12 +332,14 @@ function close() {
     el.style.height = "";
     el.style.zIndex = "";
     heroEl = null;
+    pvEl.innerHTML = "";          // tear down the paging layer
+    pvLeft = [];
+    pvRight = [];
     render();
   };
   el.addEventListener("transitionend", done);
 
-  // Restore the other thumbnails.
-  render();
+  render();                       // restore the other thumbnails
 }
 
 // Read a CSS time custom property (e.g. "820ms") as a number of ms.

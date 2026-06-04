@@ -360,3 +360,95 @@ body.project-open .project-page {
   line-height: 1.7;
   color: var(--muted);
 }
+
+/* ============================================================
+   PROJECT VIEW — paging layer (further pages of the project)
+   Two tracks of full-half panels that push in opposite vertical
+   directions, the same signature motion as the rest of the site.
+   ============================================================ */
+.pv {
+  position: fixed;
+  inset: 0;
+  z-index: 16;                 /* over page-0 visuals, under the header */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 350ms var(--ease);
+}
+
+.pv.is-shown {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pv-track {
+  position: absolute;
+  top: 0;
+  height: 100vh;
+  width: 50vw;
+  overflow: hidden;            /* clip panels that are off-screen */
+}
+
+.pv-track--left {
+  left: 0;
+}
+
+.pv-track--right {
+  left: 50vw;
+}
+
+.pv-panel {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  transition: transform var(--dur) var(--ease);
+  will-change: transform;
+}
+
+.pv-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Right page 2 — a smaller image floating in white space. */
+.pv-figure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pv-figure__img {
+  height: 58vh;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+}
+
+/* Right page 3 — centred attribution + quote. */
+.pv-quote {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 7vw;
+}
+
+.pv-quote__name {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 1.9rem;
+}
+
+.pv-quote__text {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.25rem, 1.8vw, 1.7rem);
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 24rem;
+}

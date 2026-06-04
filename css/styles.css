@@ -16,6 +16,7 @@
   --dur: 720ms;
   --hero-dur: 950ms;     /* shared image expand to full-height        */
   --reveal-dur: 820ms;   /* white block slide-down over the left half */
+  --pv-dur: 1150ms;      /* project-page push (slower, more deliberate) */
 
   /* Header inset — reused to seat the project copy in the bottom-left
      corner with the same spacing the KENDALL button has top-left. */
@@ -400,7 +401,7 @@ body.project-open .project-page {
   position: absolute;
   inset: 0;
   background: var(--bg);
-  transition: transform var(--dur) var(--ease);
+  transition: transform var(--pv-dur) var(--ease);
   will-change: transform;
 }
 

@@ -114,7 +114,14 @@ new StepScroll({
   target: document.querySelector(".shell"),
   onStep: (dir) => {
     if (isOpen) {                 // on the project view: page between project pages
-      if (!entering) pvStep(dir);
+      if (entering) return;
+      // One page per gesture: ignore further steps until the slow push
+      // has finished, so a small scroll can't skip ahead a page.
+      const now = performance.now();
+      if (now < pvCooldownUntil) return;
+      if (!pvDurMs) pvDurMs = cssMs("--pv-dur");
+      pvCooldownUntil = now + pvDurMs;
+      pvStep(dir);
       return;
     }
     pos += dir;
@@ -145,6 +152,8 @@ const pvEl = document.getElementById("pv");
 
 let heroEl = null;                // the thumbnail currently expanded
 let entering = false;            // true during the entry animation (paging locked)
+let pvCooldownUntil = 0;         // gates paging to one page per scroll gesture
+let pvDurMs = 0;                  // cached push duration (ms)
 let pg = 0;                       // current project page (0..2)
 let pvLeft = [];                  // left track panels
 let pvRight = [];                 // right track panels

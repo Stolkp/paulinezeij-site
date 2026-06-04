@@ -359,7 +359,11 @@ function contractHero() {
   // Clean up on a timer (robust even if the transition is a no-op and
   // fires no transitionend) and hand control back to the carousel.
   setTimeout(() => {
-    el.style.transition = "";
+    // Disable the transition during the hand-off so reverting the inline
+    // transform back to the carousel's resting transform is INSTANT — otherwise
+    // it animates none -> translate(-50%,-50%) and the thumb flicks to the
+    // lower-right and back.
+    el.style.transition = "none";
     el.style.top = "";
     el.style.left = "";
     el.style.width = "";
@@ -371,7 +375,9 @@ function contractHero() {
     pvEl.innerHTML = "";          // tear down the paging layer
     pvLeft = [];
     pvRight = [];
-    render();
+    render();                     // sets the resting transform instantly
+    void el.offsetWidth;          // commit before re-enabling transitions
+    el.style.transition = "";     // restore for future carousel moves
   }, cssMs("--hero-dur") + 40);
 
   render();                       // restore the other thumbnails

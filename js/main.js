@@ -224,6 +224,13 @@ carouselEl.addEventListener("click", (e) => {
   if (thumb && !isOpen) open(thumb);
 });
 
+// Clicking the active project title opens the same project (shared image).
+namesEl.addEventListener("click", (e) => {
+  if (isOpen || !e.target.closest(".name.is-active")) return;
+  const hero = document.querySelector(".thumb.is-current");
+  if (hero) open(hero);
+});
+
 brandEl.addEventListener("click", (e) => {
   e.preventDefault();          // single-page: never reload
   if (isOpen) close();

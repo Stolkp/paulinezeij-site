@@ -17,6 +17,11 @@
   --hero-dur: 950ms;     /* shared image expand to full-height        */
   --reveal-dur: 820ms;   /* white block slide-down over the left half */
 
+  /* Header inset — reused to seat the project copy in the bottom-left
+     corner with the same spacing the KENDALL button has top-left. */
+  --header-pad-x: 3rem;
+  --header-pad-y: 2.4rem;
+
   /* Layout rhythm (tuned for the opposite-direction carousel) */
   --pad-left: 5.4vw;     /* left text inset on the left panel        */
   --name-step: 18vh;     /* vertical distance between project names  */
@@ -69,7 +74,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2.4rem 3rem;
+  padding: var(--header-pad-y) var(--header-pad-x);
   pointer-events: none;        /* let panels receive scroll; re-enable on controls */
 }
 
@@ -144,7 +149,7 @@ body {
      via the parent transform, keeping the active title crisp. */
   font-size: clamp(2.6rem, 5vw, 4.6rem);
   letter-spacing: -0.01em;
-  transition: color var(--dur) var(--ease);
+  transition: color var(--dur) var(--ease), opacity 300ms var(--ease);
 }
 
 .name__tag {
@@ -163,6 +168,15 @@ body {
 
 .name.is-active .name__title {
   color: var(--ink);
+}
+
+/* The active title is clickable too — opens the project like the thumbnail. */
+.name.is-active {
+  cursor: pointer;
+}
+
+.name.is-active:hover .name__title {
+  opacity: 0.72;
 }
 
 .name.is-active .name__tag {
@@ -300,10 +314,12 @@ body.project-open .project-page {
 
 .project-page__inner {
   position: absolute;
-  left: var(--pad-left);
-  right: 3rem;
-  top: 50%;
-  transform: translateY(-50%);
+  /* Seated in the bottom-left corner: left edge aligned with KENDALL,
+     and the same spacing below as KENDALL has above (mirrored corner). */
+  left: var(--header-pad-x);
+  bottom: var(--header-pad-y);
+  right: var(--header-pad-x);
+  top: auto;
 }
 
 .proj-section {

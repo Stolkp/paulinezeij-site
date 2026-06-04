@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kendall</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Reusable split-screen layout shell -->
+  <div class="shell">
+    <!-- Persistent header above both panels -->
+    <header class="header">
+      <a class="brand" href="index.html" aria-label="Kendall — home">KENDALL</a>
+      <button class="menu" type="button" aria-label="Open menu">MENU</button>
+    </header>
+
+    <div class="split">
+      <!-- LEFT PANEL — project names -->
+      <section class="panel panel--left" aria-label="Projects">
+        <div class="names" id="names" aria-live="polite"></div>
+        <!-- Static hairlines that frame the centered, active project -->
+        <span class="hairline hairline--top"></span>
+        <span class="hairline hairline--bottom"></span>
+      </section>
+
+      <!-- RIGHT PANEL — project thumbnails -->
+      <section class="panel panel--right" aria-label="Project images">
+        <div class="carousel" id="carousel"></div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

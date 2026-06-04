@@ -1,0 +1,10 @@
+// Project data. Each entry maps to a folder in ./Visuals/.
+// `cover` is the thumbnail shown in the home-page carousel.
+export const projects = [
+  { name: "Aperture",  category: "Photography", folder: "project-01", cover: "01.jpg" },
+  { name: "Monolith",  category: "Architecture", folder: "project-02", cover: "01.jpg" },
+  { name: "Still Life", category: "Editorial",   folder: "project-03", cover: "01.jpg" },
+  { name: "Daylight",  category: "Interiors",    folder: "project-04", cover: "01.jpg" },
+];
+
+export const imgSrc = (p) => `Visuals/${p.folder}/${p.cover}`;

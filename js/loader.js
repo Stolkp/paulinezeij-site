@@ -9,10 +9,10 @@
 import { projects, imgAt } from "./projects.js";
 
 // Timing (ms) — calm and deliberate.
-const ENTER = 1100;        // images push in
-const BREATHE = 2000;      // KENDALL letter-spacing opens out over this
+const ENTER = 2200;        // images push in (slow)
+const BREATHE = 2400;      // KENDALL letter-spacing opens out over this
 const WORD_FADE = 600;     // KENDALL fade-out
-const EXIT = 1100;         // images slide back out
+const EXIT = 2200;         // images slide back out (slow)
 const EXIT_AT = BREATHE + 650;
 
 const el = (cls) => {

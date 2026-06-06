@@ -13,10 +13,10 @@
 
   /* Motion — gentle, luxurious ease-out */
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur: 720ms;
+  --dur: 1500ms;
   --hero-dur: 950ms;     /* shared image expand to full-height        */
   --reveal-dur: 820ms;   /* white block slide-down over the left half */
-  --pv-dur: 1150ms;      /* project-page push (slower, more deliberate) */
+  --pv-dur: 1725ms;      /* project-page push (slower, more deliberate) */
   --menu-dur: 820ms;     /* menu panel slide-down over the right half  */
 
   /* Header inset — reused to seat the project copy in the bottom-left

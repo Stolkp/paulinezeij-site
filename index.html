@@ -1,81 +1,884 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kendall</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pauline Zeij — Contemporary Art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #FFFFFF;
+    font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: #000;
+  }
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap"
-    rel="stylesheet"
-  />
+  /* ----- Persistent wordmark (top-anchored throughout) ----- */
+  .wordmark {
+    position: fixed;
+    left: 50%;
+    top: 30px;
+    font-weight: 700;
+    color: #000;
+    line-height: 0.9;
+    white-space: nowrap;
+    letter-spacing: -0.04em;
+    transform: translateX(-50%);
+    transform-origin: top center;
+    z-index: 1;
+    pointer-events: none;
+    will-change: font-size;
+  }
+  /* After loading, lift the wordmark above the project view so it stays visible. */
+  body:not(.loading) .wordmark { z-index: 25; }
+  /* While a project is open, make the wordmark act as a close button. */
+  body.project-open .wordmark,
+  body.info-open .wordmark {
+    pointer-events: auto;
+    cursor: pointer;
+  }
 
-  <link rel="stylesheet" href="css/styles.css" />
+  /* Invert nav + wordmark while info panel is open (colour only — font-size
+     transitions are applied inline by the land() animation when needed). */
+  .nav-btn { transition: color 0.45s ease; }
+  .wordmark { transition: color 0.45s ease; }
+  body.info-open .nav-btn,
+  body.info-open .wordmark { color: #FFFFFF; }
+
+  /* ----- Info panel ----- */
+  .info-bg {
+    position: fixed; inset: 0;
+    background: #000000;
+    z-index: 14;
+    transform: translateY(-100%);
+    will-change: transform;
+  }
+  .info-bg.show { transform: translateY(0); }
+  .info-bg.closing { transform: translateY(-100%); }
+
+  .info-content {
+    position: fixed; inset: 0;
+    z-index: 16;
+    pointer-events: none;     /* clicks pass through to the bg unless on children */
+  }
+  .info-image-wrap, .info-text { pointer-events: auto; }
+
+  .info-image-wrap {
+    position: absolute;
+    left: 48px;
+    bottom: 40px;
+    top: 110px;
+    opacity: 0;
+    transition: opacity 0.7s ease-in-out;
+  }
+  .info-image-wrap.show { opacity: 1; }
+  .info-image {
+    height: 100%;
+    width: auto;
+    display: block;
+    object-fit: cover;
+  }
+  .info-text {
+    position: absolute;
+    right: 48px;
+    bottom: 40px;
+    top: 110px;
+    width: 38vw;
+    max-width: 620px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .info-paragraphs { display: flex; flex-direction: column; gap: 18px; }
+  .info-p {
+    font-family: 'Figtree', sans-serif;
+    color: #FFFFFF;
+    font-size: 15px;
+    line-height: 1.55;
+    font-weight: 400;
+    opacity: 0;
+    transition: opacity 0.7s ease-in-out;
+  }
+  .info-p.show { opacity: 1; }
+  .info-quote {
+    font-family: 'Figtree', sans-serif;
+    color: #FFFFFF;
+    font-size: 28px;
+    line-height: 1.25;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    opacity: 0;
+    transition: opacity 0.7s ease-in-out;
+    margin: 0;
+  }
+  .info-quote.show { opacity: 1; }
+
+  /* ----- Opening ticker image (single, centered) ----- */
+  .ticker {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    height: 35vh;
+    width: auto;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+    z-index: 15;
+    will-change: opacity;
+  }
+
+  /* ----- Header (INFO / CONTACT) ----- */
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 30px 48px;
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.9s ease-in-out;
+  }
+  header.show { opacity: 1; pointer-events: auto; }
+  .nav-btn {
+    font-family: 'Figtree', sans-serif;
+    font-weight: 700;
+    color: #000;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 12px;
+    cursor: pointer;
+    background: none;
+    border: none;
+  }
+
+  /* ----- Project row ----- */
+  .viewport {
+    position: fixed;
+    left: 0; right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    overflow: hidden;
+    width: 100%;
+    z-index: 10;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 3vw;
+    padding-left: 3vw;
+    width: max-content;
+    will-change: transform;
+  }
+  .card {
+    flex: 0 0 auto;
+    width: 22vw;
+    min-width: 220px;
+  }
+  .card img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+  }
+  body.loading .card img { opacity: 0; }   /* hidden until spread begins */
+
+  .card { cursor: pointer; }
+  .card .meta {
+    margin-top: 18px;
+    opacity: 0;
+    transition: opacity 0.9s ease-in-out;
+  }
+  .card.show .meta { opacity: 1; }
+  .card h3 {
+    font-size: 14px;
+    font-weight: 500;
+    color: #000;
+    margin-bottom: 4px;
+    letter-spacing: 0;
+  }
+  .card p {
+    font-size: 13px;
+    font-weight: 400;
+    color: #595959;
+  }
+
+  /* Hover dim: when any card is hovered, others fade. Hovered card stays at 1. */
+  body:not(.loading):not(.project-open) .row:has(.card:hover) .card:not(:hover) img { opacity: 0.3; }
+
+  /* ----- Project view ----- */
+  .project-curtain {
+    position: fixed; inset: 0;
+    background: #FFFFFF;
+    z-index: 15;
+    transform: translateY(-100%);
+    will-change: transform;
+  }
+  .project-curtain.show { transform: translateY(0); }
+  .project-curtain.closing { transform: translateY(-100%); }
+
+  .project-content {
+    position: fixed; inset: 0;
+    z-index: 18;
+    overflow-y: hidden;
+    overflow-x: hidden;
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+  }
+  .project-content.scrollable { overflow-y: auto; }
+  .project-content.fading { opacity: 0; }
+
+  .project-hero {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+  .hero-left {
+    width: 50vw; height: 100vh;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.7s ease-in-out;
+  }
+  .hero-left.show { opacity: 1; }
+  .hero-right {
+    width: 50vw; height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hero-card {
+    width: 22vw;
+    min-width: 220px;
+    will-change: transform;
+  }
+  .hero-card img {
+    display: block; width: 100%;
+    aspect-ratio: 3 / 4; object-fit: cover;
+  }
+  .hero-card .meta { margin-top: 18px; }
+  .hero-card h3 {
+    font-size: 14px; font-weight: 500; color: #000;
+    margin-bottom: 4px;
+  }
+  .hero-card p {
+    font-size: 13px; font-weight: 400; color: #595959;
+  }
+
+  .project-body {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 100px 24px 80px;
+  }
+  .project-body h2.project-title {
+    font-size: 32px;
+    font-weight: 500;
+    color: #000;
+    margin-bottom: 28px;
+    letter-spacing: -0.01em;
+  }
+  .project-body p {
+    font-size: 14px;
+    font-weight: 400;
+    color: #595959;
+    line-height: 1.75;
+    margin: 24px 0;
+  }
+  .project-body .img-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 36px 0;
+  }
+  .project-body .img-pair img,
+  .project-body .single-wide {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+  }
+  .project-body .single-wide {
+    margin: 36px 0;
+    aspect-ratio: 3 / 4;
+  }
+  .close-project {
+    display: block;
+    margin: 60px auto 20px;
+    padding: 14px 40px;
+    background: #FFFFFF;
+    border: 1px solid #595959;
+    font-family: 'Figtree', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #000;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .close-project:hover { background: #f5f5f5; }
+
+  /* ----- Wordmark tagline ----- */
+  .wordmark-sub {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 58px;
+    font-family: 'Figtree', sans-serif;
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #000;
+    white-space: nowrap;
+    z-index: 25;
+    opacity: 0;
+    transition: opacity 0.5s ease 0.5s, color 0.45s ease;
+    pointer-events: none;
+  }
+  body:not(.loading) .wordmark-sub { opacity: 1; }
+  body.info-open .wordmark-sub { color: #fff; }
+
+  /* ----- Links inside project copy ----- */
+  .project-body p a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: #bbb;
+    transition: text-decoration-color 0.2s ease, color 0.2s ease;
+  }
+  .project-body p a:hover {
+    color: #000;
+    text-decoration-color: #000;
+  }
+
+  /* ----- Mobile ----- */
+  @media (max-width: 768px) {
+    header { padding: 20px 20px; }
+    .wordmark-sub { top: 52px; font-size: 8px; }
+
+    /* Carousel: 2 kaarten + peek zichtbaar op tablet */
+    .card { width: 42vw; min-width: 0; }
+    .row { gap: 4vw; padding-left: 4vw; }
+    .viewport { top: 46%; }
+
+    /* Project hero: stapelen, groot beeld */
+    .project-hero { flex-direction: column; height: auto; min-height: 100vh; }
+    .hero-left { width: 100vw; height: 56vh; min-height: 0; }
+    .hero-right { width: 100vw; height: auto; padding: 36px 24px 32px; justify-content: center; }
+    .hero-card { width: 42vw; min-width: 0; }
+
+    /* Project body */
+    .project-body { padding: 60px 20px 60px; }
+    .project-body h2.project-title { font-size: 24px; }
+    .project-body .img-pair { grid-template-columns: 1fr; gap: 12px; }
+
+    /* Info panel: naast elkaar op tablet */
+    .info-image-wrap { left: 20px; right: auto; width: 42vw; top: 90px; bottom: 24px; }
+    .info-image { height: 100%; width: auto; max-width: 100%; }
+    .info-text { right: 20px; left: calc(42vw + 36px); width: auto; top: 90px; bottom: 24px; gap: 16px; }
+    .info-quote { font-size: 20px; }
+    .info-p { font-size: 13px; }
+  }
+
+  @media (max-width: 480px) {
+    /* Carousel: 1 groot schilderij + peek — impactvoller op telefoon */
+    .card { width: 72vw; min-width: 0; }
+    .row { gap: 5vw; padding-left: 5vw; }
+    .viewport { top: 46%; }
+
+    /* Info panel: verticaal stapelen op kleine telefoon */
+    .info-image-wrap { left: 20px; right: 20px; width: auto; top: 80px; bottom: auto; height: 40vh; }
+    .info-text { left: 20px; right: 20px; width: auto; top: calc(40vh + 96px); bottom: 24px; }
+    .info-quote { font-size: 17px; }
+
+    /* Hero */
+    .hero-left { height: 52vh; }
+    .hero-card { width: 52vw; }
+  }
+</style>
 </head>
-<body>
-  <!-- Reusable split-screen layout shell -->
-  <div class="shell">
-    <!-- Persistent header above both panels -->
-    <header class="header">
-      <a class="brand" href="index.html" aria-label="Kendall — home">KENDALL</a>
-      <button class="menu" type="button" aria-label="Open menu" aria-expanded="false">MENU</button>
-    </header>
+<body class="loading">
 
-    <div class="split">
-      <!-- LEFT PANEL — project names -->
-      <section class="panel panel--left" aria-label="Projects">
-        <div class="names" id="names" aria-live="polite"></div>
-        <!-- Static hairlines that frame the centered, active project -->
-        <span class="hairline hairline--top"></span>
-        <span class="hairline hairline--bottom"></span>
-      </section>
+<header>
+  <button class="nav-btn" id="nav-info">INFO</button>
+  <a class="nav-btn" id="nav-contact" href="mailto:info@paulinezeij.nl">CONTACT</a>
+</header>
 
-      <!-- RIGHT PANEL — project thumbnails -->
-      <section class="panel panel--right" aria-label="Project images">
-        <div class="carousel" id="carousel"></div>
-      </section>
-    </div>
+<div class="viewport">
+  <div class="row" id="row"></div>
+</div>
 
-    <!-- PROJECT PAGE — white block reveals over the left half; the
-         right half is the shared thumbnail image expanded to full height. -->
-    <div class="project-page" id="projectPage" aria-hidden="true">
-      <div class="project-page__inner">
-        <article class="proj-section">
-          <h2 class="proj-section__head">The Concept</h2>
-          <p class="proj-section__body">This project began as a study in quiet light and restraint. The aim was to let the subject breathe within the frame, with nothing competing for attention, so every choice served a sense of calm and intention.</p>
-        </article>
-        <article class="proj-section">
-          <h2 class="proj-section__head">Art Direction</h2>
-          <p class="proj-section__body">The palette was kept warm and muted, built around natural materials and soft neutral tones. Styling was stripped back to the essentials, leaving a result that feels understated, considered, and unhurried.</p>
-        </article>
-        <article class="proj-section">
-          <h2 class="proj-section__head">Photography</h2>
-          <p class="proj-section__body">Shot entirely in available daylight, the series favours soft shadows and gentle contrast. The compositions stay simple and centred, giving each image room to settle and a tone that feels intimate without ever appearing staged.</p>
-        </article>
+<h1 class="wordmark" id="wordmark">Pauline Zeij</h1>
+<p class="wordmark-sub">Contemporary Art</p>
+<img class="ticker" id="ticker" src="images/01.jpg" alt="">
+
+<script>
+const projects = [
+  { title: "Paarden",     tag: "Equine Art" },
+  { title: "Magie",       tag: "Fine Art" },
+  { title: "Kunstenaar",  tag: "Portret" },
+  { title: "Atelier",     tag: "Studie" },
+  { title: "Galerie",     tag: "Collectie" },
+];
+
+const tickerSeq = [1, 2, 3, 4, 5, 1];
+const REPEAT = 6;
+const CENTER_REPEAT_INDEX = 2;
+
+// ---- Build row (repeated for infinite scroll) ----
+const row = document.getElementById('row');
+const firstSetCards = [];
+
+for (let r = 0; r < REPEAT; r++) {
+  projects.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.idx = String(i);
+    card.innerHTML = `
+      <img src="images/0${i + 1}.jpg" alt="">
+      <div class="meta">
+        <h3>${p.title}</h3>
+        <p>${p.tag}</p>
+      </div>
+    `;
+    card.addEventListener('click', () => openProject(card));
+    row.appendChild(card);
+    if (r === CENTER_REPEAT_INDEX) firstSetCards.push(card);
+  });
+}
+
+const wordmark = document.getElementById('wordmark');
+const tickerImg = document.getElementById('ticker');
+
+// ---- Size the giant opening wordmark to ~95vw ----
+function sizeWordmark() {
+  wordmark.style.fontSize = '100px';
+  const measured = wordmark.offsetWidth;
+  const target = window.innerWidth * 0.95;
+  const fs = (target / measured) * 100;
+  wordmark.style.fontSize = fs + 'px';
+}
+
+// ---- Boot ----
+let landed = false;
+document.fonts.ready.then(() => {
+  const preloads = projects.map((_, i) => new Promise(res => {
+    const img = new Image();
+    img.onload = img.onerror = res;
+    img.src = `images/0${i + 1}.jpg`;
+  }));
+  Promise.all(preloads).then(() => {
+    sizeWordmark();
+    setTimeout(runTicker, 250);
+  });
+});
+
+window.addEventListener('resize', () => {
+  if (!landed) sizeWordmark();
+});
+
+// Wordmark acts as a close button for any open overlay
+wordmark.addEventListener('click', () => {
+  if (projectOpen) closeProject();
+  else if (infoOpen) closeInfo();
+});
+
+// INFO button toggles the info panel
+document.getElementById('nav-info').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (infoOpen) closeInfo();
+  else openInfo();
+});
+
+// ---- Ticker: flip through images, land on 4 ----
+function runTicker() {
+  let frame = 0;
+  const interval = setInterval(() => {
+    tickerImg.src = `images/0${tickerSeq[frame]}.jpg`;
+    frame++;
+    if (frame >= tickerSeq.length) {
+      clearInterval(interval);
+      setTimeout(land, 250);
+    }
+  }, 200);
+}
+
+// ---- Transition into resting state ----
+let baseOffset = 0;
+let setWidth = 0;
+
+function land() {
+  landed = true;
+
+  // Hide all cards except first visible set during transition
+  const allCards = Array.from(row.querySelectorAll('.card'));
+  allCards.forEach((c) => {
+    if (!firstSetCards.includes(c)) c.style.visibility = 'hidden';
+  });
+
+  // Position row so image-1 card sits centred horizontally
+  const targetCard = firstSetCards[0];
+  const targetImg = targetCard.querySelector('img');
+  const cardRect = targetCard.getBoundingClientRect();
+  const viewCenterX = window.innerWidth / 2;
+  const cardCenterX = cardRect.left + cardRect.width / 2;
+  baseOffset = viewCenterX - cardCenterX;
+  row.style.transform = `translateX(${baseOffset}px)`;
+
+  // Measure post-layout
+  const tickerRect = tickerImg.getBoundingClientRect();
+
+  // Stack every card image on the ticker (FLIP). All fully opaque;
+  // image 4 sits on top so it covers the stack while the ticker fades.
+  firstSetCards.forEach((card, i) => {
+    const img = card.querySelector('img');
+    const r = img.getBoundingClientRect();
+    const dx = (tickerRect.left + tickerRect.width / 2) - (r.left + r.width / 2);
+    const dy = (tickerRect.top + tickerRect.height / 2) - (r.top + r.height / 2);
+    const scale = tickerRect.width / r.width;
+    img.style.transition = 'none';          // bypass the hover-dim opacity transition
+    img.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    img.style.opacity = '1';
+    img.style.position = 'relative';
+    img.style.zIndex = (i === 3) ? '2' : '1';
+  });
+
+  // Force reflow
+  void row.offsetWidth;
+
+  requestAnimationFrame(() => {
+    const ease = 'cubic-bezier(0.65, 0, 0.35, 1)';
+    const dur = 1200;
+
+    // Hide ticker — the stacked card images (image 4 on top) already cover it.
+    tickerImg.style.transition = 'opacity 0.25s ease-in-out';
+    tickerImg.style.opacity = '0';
+
+    // Wordmark shrinks (top-anchored — no vertical jump)
+    wordmark.style.transition = `font-size ${dur}ms ${ease}, letter-spacing ${dur}ms ${ease}`;
+    wordmark.style.fontSize = '29px';
+    wordmark.style.letterSpacing = '-0.01em';
+
+    // After ticker has faded, spread the stack outward
+    setTimeout(() => {
+      firstSetCards.forEach((card) => {
+        const img = card.querySelector('img');
+        img.style.transition = `transform ${dur}ms ${ease}`;
+        img.style.transform = 'translate(0, 0) scale(1)';
+      });
+
+      // Meta + header fade in mid-spread
+      setTimeout(() => {
+        firstSetCards.forEach(c => c.classList.add('show'));
+        document.querySelector('header').classList.add('show');
+      }, 450);
+
+      // Cleanup, reveal duplicates, hand off to autoscroll
+      setTimeout(() => {
+        tickerImg.style.display = 'none';
+        document.body.classList.remove('loading');
+        // Clear inline transition so the CSS rule (incl. colour) takes over.
+        wordmark.style.transition = '';
+        allCards.forEach(c => {
+          c.style.visibility = '';
+          c.classList.add('show');
+          const img = c.querySelector('img');
+          img.style.transition = '';
+          img.style.transform = '';
+          img.style.opacity = '';
+          img.style.zIndex = '';
+          img.style.position = '';
+        });
+        startScroll();
+      }, dur + 50);
+    }, 350);
+  });
+}
+
+// ---- Infinite horizontal drift + wheel ----
+let scrollX = 0;
+let baseVelocity = -0.6;
+let userVel = 0;
+let scrollPaused = false;
+
+function startScroll() {
+  const cards = row.querySelectorAll('.card');
+  const a = cards[0].getBoundingClientRect().left;
+  const b = cards[5].getBoundingClientRect().left;
+  setWidth = b - a;
+
+  window.addEventListener('wheel', onWheel, { passive: false });
+  requestAnimationFrame(tick);
+}
+
+function onWheel(e) {
+  if (scrollPaused) return;             // let the project page scroll normally
+  e.preventDefault();
+  const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  userVel -= d * 0.6;
+}
+
+function tick() {
+  if (!scrollPaused) {
+    scrollX += baseVelocity + userVel;
+    userVel *= 0.9;
+    if (Math.abs(userVel) < 0.01) userVel = 0;
+
+    if (setWidth > 0) {
+      while (scrollX <= -setWidth) scrollX += setWidth;
+      while (scrollX > 0) scrollX -= setWidth;
+    }
+
+    row.style.transform = `translateX(${baseOffset + scrollX}px)`;
+  }
+  requestAnimationFrame(tick);
+}
+
+// ---- Project view ----
+let projectOpen = false;
+let currentProjectEl = null;
+let currentSourceCard = null;
+let cardClickGuard = false;
+
+const copyPerSeries = {
+  "Paarden": {
+    p1: "Pauline schildert paarden zoals ze zijn — krachtig, gracieus en vol karakter. Elk schilderij vangt een moment van aanwezigheid, een blik die de toeschouwer raakt en niet loslaat.",
+    p2: "De werken zijn geschilderd in olieverf op groot formaat doek. Licht en kleur zijn de sleutelwoorden: diep donker als achtergrond, warme tinten die het paard doen oplichten.",
+    p3: 'Een persoonlijk paardenportret laten maken? Pauline werkt graag in opdracht. Neem contact op via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a> of <a href="tel:+31612854167">+31 6 12 85 41 67</a>.',
+  },
+  "Magie": {
+    p1: "In haar magische werken ontmoeten mensen en dieren elkaar in een wereld die tegelijk vertrouwd en dromerig aanvoelt. Realisme en fantasie vloeien moeiteloos samen op het doek.",
+    p2: "Gemengde techniek op doek — olieverf in combinatie met andere materialen. De heldere kleurvlakken en de precieze details maken haar herkenbare signatuur.",
+    p3: 'Interesse in een van haar magische werken? Neem contact op voor beschikbaarheid en prijzen: <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a>.',
+  },
+  "Kunstenaar": {
+    p1: "Pauline Zeij — de kunstenaar achter het werk. Haar passie voor licht, kleur en het samenspel tussen mens en dier is zichtbaar in elk schilderij dat ze maakt.",
+    p2: "Gevestigd in de omgeving van Uithoorn, werkt Pauline vanuit een eigen atelier waar elk doek begint als een dialoog tussen haar en het onderwerp.",
+    p3: 'Meer weten over Pauline? Volg haar op Instagram @pauline_zeij_contemporary_art of neem direct contact op via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a>.',
+  },
+  "Atelier": {
+    p1: "Detailopnames vanuit het atelier — close-ups van schilderijen in wording, verflagen en penseelstreken die de intimiteit van het maakproces tonen.",
+    p2: "Olieverf op doek, vastgelegd in het atelier. Elke close-up onthult de textuur en gelaagdheid die van dichtbij pas volledig zichtbaar wordt.",
+    p3: "Wil je het maakproces volgen? Pauline deelt regelmatig behind-the-scenes op Instagram @pauline_zeij_contemporary_art.",
+  },
+  "Galerie": {
+    p1: "Werken in hun uiteindelijke context — ingelijst, opgehangen, thuis. Zo laat Pauline zien hoe haar schilderijen tot leven komen in een woon- of galerie-omgeving.",
+    p2: "Verschillende technieken en formaten, van klein formaat aquarel tot groot formaat olieverf. Vertegenwoordigd door de Paard Verzameld Gallery.",
+    p3: 'Interesse in een werk voor uw collectie? Neem contact op met Pauline via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a> of bezoek de Paard Verzameld Gallery.',
+  },
+};
+const projectCopy = (title) => copyPerSeries[title] || {
+  p1: "Pauline Zeij schildert trefzekere portretten van mensen en dieren.",
+  p2: "Olieverf op doek, met aandacht voor licht en kleur.",
+  p3: 'Neem contact op via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a>.',
+};
+
+function openProject(card) {
+  if (projectOpen || infoOpen || !landed || cardClickGuard) return;
+  projectOpen = true;
+  scrollPaused = true;
+  document.body.classList.add('project-open');
+
+  const idx = parseInt(card.dataset.idx, 10);
+  const num = String(idx + 1).padStart(2, '0');
+  const project = projects[idx];
+  const copy = projectCopy(project.title);
+  currentSourceCard = card;
+
+  // Build DOM
+  const curtain = document.createElement('div');
+  curtain.className = 'project-curtain';
+
+  const content = document.createElement('div');
+  content.className = 'project-content';
+  content.innerHTML = `
+    <div class="project-hero">
+      <img class="hero-left" src="images/Project-${num}/01.jpg" alt="">
+      <div class="hero-right">
+        <div class="hero-card">
+          <img src="images/0${idx + 1}.jpg" alt="">
+          <div class="meta">
+            <h3>${project.title}</h3>
+            <p>${project.tag}</p>
+          </div>
+        </div>
       </div>
     </div>
-
-    <!-- PROJECT VIEW — paging layer for the further project pages,
-         built on demand by the script. -->
-    <div class="pv" id="pv" aria-hidden="true"></div>
-
-    <!-- MENU — white panel sliding down over the right half only. -->
-    <div class="menu-panel" id="menuPanel" aria-hidden="true">
-      <nav class="menu-nav">
-        <a class="menu-item">Home</a>
-        <a class="menu-item">About</a>
-        <a class="menu-item">Projects</a>
-        <a class="menu-item">Contact</a>
-      </nav>
-      <div class="menu-studio">
-        <span class="menu-studio__label">Kendall Studios</span>
-        <p class="menu-studio__body">Kendall Studios is a photography practice working across portraiture, editorial, and art direction, making quiet, considered images built on natural light and a careful eye for detail.</p>
+    <div class="project-body">
+      <h2 class="project-title">${project.title}</h2>
+      <p>${copy.p1}</p>
+      <div class="img-pair">
+        <img src="images/Project-${num}/02.jpg" alt="">
+        <img src="images/Project-${num}/03.jpg" alt="">
       </div>
+      <p>${copy.p2}</p>
+      <img class="single-wide" src="images/Project-${num}/04.jpg" alt="">
+      <p>${copy.p3}</p>
+      <button class="close-project">Sluit project</button>
     </div>
-  </div>
+  `;
 
-  <script type="module" src="js/main.js"></script>
+  document.body.appendChild(curtain);
+  document.body.appendChild(content);
+  currentProjectEl = { curtain, content };
+
+  content.querySelector('.close-project').addEventListener('click', closeProject);
+
+  // FLIP setup: hero-card from source card position → its natural target.
+  const heroCard = content.querySelector('.hero-card');
+  const srcRect = card.getBoundingClientRect();
+  const targetRect = heroCard.getBoundingClientRect();
+  const dx = (srcRect.left + srcRect.width / 2) - (targetRect.left + targetRect.width / 2);
+  const dy = (srcRect.top + srcRect.height / 2) - (targetRect.top + targetRect.height / 2);
+
+  heroCard.style.transition = 'none';
+  heroCard.style.transform = `translate(${dx}px, ${dy}px)`;
+
+  // Force reflow
+  void content.offsetWidth;
+
+  requestAnimationFrame(() => {
+    const ease = 'cubic-bezier(0.65, 0, 0.35, 1)';
+
+    // 1) Curtain slides down to fully cover the page (0.9s)
+    curtain.style.transition = `transform 0.9s ${ease}`;
+    curtain.classList.add('show');
+
+    // 2) Once curtain is fully in place, slide the hero-card to the right half (0.9s)
+    setTimeout(() => {
+      heroCard.style.transition = `transform 0.9s ${ease}`;
+      heroCard.style.transform = 'translate(0, 0)';
+    }, 900);
+
+    // 3) Once hero-card lands, fade in the left hero image (0.7s)
+    setTimeout(() => {
+      content.querySelector('.hero-left').classList.add('show');
+    }, 1800);
+
+    // 4) Enable scroll after the full sequence completes
+    setTimeout(() => {
+      content.classList.add('scrollable');
+    }, 2550);
+  });
+}
+
+// ---- Info panel ----
+let infoOpen = false;
+let currentInfoEls = null;
+
+function openInfo() {
+  if (infoOpen || projectOpen || !landed) return;
+  infoOpen = true;
+  scrollPaused = true;
+  document.body.classList.add('info-open');
+
+  const bg = document.createElement('div');
+  bg.className = 'info-bg';
+
+  const content = document.createElement('div');
+  content.className = 'info-content';
+  content.innerHTML = `
+    <div class="info-image-wrap">
+      <img class="info-image" src="images/Profile.jpg" alt="">
+    </div>
+    <div class="info-text">
+      <div class="info-paragraphs">
+        <p class="info-p p1">Pauline Zeij is een contemporaine kunstenaar gevestigd in de omgeving van Uithoorn. Ze schildert trefzekere portretten van zowel mensen als dieren, en beeldt een geheel eigen magische wereld uit waar mens en dier elkaar regelmatig ontmoeten. Haar werk bevindt zich in particuliere collecties en wordt vertegenwoordigd door de Paard Verzameld Gallery.</p>
+        <p class="info-p p2">Haar beeldtaal is zacht en aaibaar, maar ook rauw en reëel &mdash; een combinatie die moeiteloos samengaat op het doek. Het gebruik van licht en kleur is voor Pauline van groot belang: het zijn de middelen waarmee ze zowel haar realiteit als haar magie vangt.</p>
+      </div>
+      <p class="info-quote">&ldquo;Licht en kleur zijn voor mij het begin van elk verhaal.&rdquo;</p>
+    </div>
+  `;
+
+  document.body.appendChild(bg);
+  document.body.appendChild(content);
+  currentInfoEls = { bg, content };
+
+  // Clicking the black background closes the panel ("anywhere outside the content")
+  bg.addEventListener('click', () => { if (infoOpen) closeInfo(); });
+
+  const ease = 'cubic-bezier(0.65, 0, 0.35, 1)';
+
+  // Force reflow before applying the transition class
+  void bg.offsetWidth;
+
+  requestAnimationFrame(() => {
+    // 1) Black panel slides down (0.9s), nav text inverts in parallel via CSS
+    bg.style.transition = `transform 0.9s ${ease}`;
+    bg.classList.add('show');
+
+    const img    = content.querySelector('.info-image-wrap');
+    const p1     = content.querySelector('.info-p.p1');
+    const p2     = content.querySelector('.info-p.p2');
+    const quote  = content.querySelector('.info-quote');
+
+    // 2) Image fades in after panel settles
+    setTimeout(() => img.classList.add('show'), 950);
+    // 3) Paragraphs fade in one after the other
+    setTimeout(() => p1.classList.add('show'), 1500);
+    setTimeout(() => p2.classList.add('show'), 1900);
+    // 4) Quote fades in last
+    setTimeout(() => quote.classList.add('show'), 2400);
+  });
+}
+
+function closeInfo() {
+  if (!infoOpen || !currentInfoEls) return;
+  const { bg, content } = currentInfoEls;
+  const ease = 'cubic-bezier(0.65, 0, 0.35, 1)';
+
+  // Fade content out first
+  content.querySelectorAll('.show').forEach(el => el.classList.remove('show'));
+
+  // Then slide the black panel back up; nav colour reverts via class removal
+  setTimeout(() => {
+    bg.style.transition = `transform 0.9s ${ease}`;
+    bg.classList.add('closing');
+    document.body.classList.remove('info-open');
+  }, 400);
+
+  setTimeout(() => {
+    bg.remove();
+    content.remove();
+    currentInfoEls = null;
+    infoOpen = false;
+    scrollPaused = false;
+  }, 1400);
+}
+
+function closeProject() {
+  if (!projectOpen || !currentProjectEl) return;
+  const { curtain, content } = currentProjectEl;
+
+  // Fade out both layers
+  content.classList.remove('scrollable');
+  content.classList.add('fading');
+  curtain.style.transition = 'opacity 0.55s ease-in-out';
+  curtain.style.opacity = '0';
+
+  setTimeout(() => {
+    curtain.remove();
+    content.remove();
+    currentProjectEl = null;
+    currentSourceCard = null;
+    projectOpen = false;
+    scrollPaused = false;
+    document.body.classList.remove('project-open');
+  }, 600);
+}
+</script>
 </body>
 </html>

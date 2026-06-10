@@ -375,10 +375,12 @@ let projects = [];
 
 async function loadProjects() {
   const { data } = await supa.from('paulinezeij_projects')
-    .select('*, project_images(id, order_num, url)')
+    .select('*, paulinezeij_project_images(id, order_num, url)')
     .order('order_num', { ascending: true });
   projects = (data || []).map(p => {
-    p.project_images?.sort((a, b) => a.order_num - b.order_num);
+    p.project_images = p.paulinezeij_project_images || [];
+    p.project_images.sort((a, b) => a.order_num - b.order_num);
+    delete p.paulinezeij_project_images;
     return p;
   });
   renderList();

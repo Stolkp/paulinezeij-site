@@ -509,39 +509,50 @@ function sizeWordmark() {
 // ---- Boot: fetch projects, build row, start ticker ----
 let landed = false;
 async function init() {
-  allProjects = await fetchProjects();
+  try {
+    allProjects = await fetchProjects();
 
-  // Build carousel row
-  for (let r = 0; r < REPEAT; r++) {
-    allProjects.forEach((p, i) => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.dataset.idx = String(i);
-      card.innerHTML = `
-        <img src="${p.cover_url}" alt="${p.title}">
-        <div class="meta">
-          <h3>${p.title}</h3>
-          <p>${p.tag}</p>
-        </div>
-      `;
-      card.addEventListener('click', () => openProject(card));
-      row.appendChild(card);
-      if (r === CENTER_REPEAT_INDEX) firstSetCards.push(card);
-    });
+    if (!allProjects.length) {
+      console.error('Geen projecten gevonden, fallback naar statisch.');
+      allProjects = STATIC_PROJECTS;
+    }
+
+    // Build carousel row
+    for (let r = 0; r < REPEAT; r++) {
+      allProjects.forEach((p, i) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.idx = String(i);
+        card.innerHTML = `
+          <img src="${p.cover_url || 'images/01.jpg'}" alt="${p.title}">
+          <div class="meta">
+            <h3>${p.title}</h3>
+            <p>${p.tag}</p>
+          </div>
+        `;
+        card.addEventListener('click', () => openProject(card));
+        row.appendChild(card);
+        if (r === CENTER_REPEAT_INDEX) firstSetCards.push(card);
+      });
+    }
+
+    // Set first ticker image
+    tickerImg.src = allProjects[0]?.cover_url || 'images/01.jpg';
+
+    // Preload covers then start
+    await document.fonts.ready;
+    await Promise.all(allProjects.map(p => new Promise(res => {
+      const img = new Image();
+      img.onload = img.onerror = res;
+      img.src = p.cover_url || 'images/01.jpg';
+    })));
+    sizeWordmark();
+    setTimeout(runTicker, 250);
+  } catch (err) {
+    console.error('Init fout:', err);
+    allProjects = STATIC_PROJECTS;
+    init();
   }
-
-  // Set first ticker image
-  tickerImg.src = allProjects[0]?.cover_url || 'images/01.jpg';
-
-  // Preload covers then start
-  await document.fonts.ready;
-  await Promise.all(allProjects.map(p => new Promise(res => {
-    const img = new Image();
-    img.onload = img.onerror = res;
-    img.src = p.cover_url;
-  })));
-  sizeWordmark();
-  setTimeout(runTicker, 250);
 }
 init();
 

@@ -539,13 +539,17 @@ async function init() {
     // Set first ticker image
     tickerImg.src = allProjects[0]?.cover_url || 'images/01.jpg';
 
-    // Preload covers then start
-    await document.fonts.ready;
-    await Promise.all(allProjects.map(p => new Promise(res => {
-      const img = new Image();
-      img.onload = img.onerror = res;
-      img.src = p.cover_url || 'images/01.jpg';
-    })));
+    // Preload covers then start (met timeouts zodat fonts/images nooit hangen)
+    const timeout = ms => new Promise(res => setTimeout(res, ms));
+    await Promise.race([document.fonts.ready, timeout(2000)]);
+    await Promise.race([
+      Promise.all(allProjects.map(p => new Promise(res => {
+        const img = new Image();
+        img.onload = img.onerror = res;
+        img.src = p.cover_url || 'images/01.jpg';
+      }))),
+      timeout(4000)
+    ]);
     sizeWordmark();
     setTimeout(runTicker, 250);
   } catch (err) {

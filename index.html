@@ -402,9 +402,10 @@
     .viewport { top: 46%; }
 
     /* Info panel: verticaal stapelen op kleine telefoon */
-    .info-image-wrap { left: 20px; right: 20px; width: auto; top: 80px; bottom: auto; height: 40vh; }
-    .info-text { left: 20px; right: 20px; width: auto; top: calc(40vh + 96px); bottom: 24px; }
-    .info-quote { font-size: 17px; }
+    .info-image-wrap { left: 20px; right: 20px; width: auto; top: 72px; bottom: auto; height: 36vh; }
+    .info-text { left: 20px; right: 20px; width: auto; top: calc(36vh + 88px); bottom: 16px; overflow-y: auto; }
+    .info-quote { font-size: 16px; }
+    .info-p { font-size: 13px; }
 
     /* Hero */
     .hero-left { height: 52vh; }
@@ -758,6 +759,15 @@ let currentProjectEl = null;
 let currentSourceCard = null;
 let cardClickGuard = false;
 
+function linkify(text) {
+  if (!text) return '';
+  return text
+    .replace(/@([\w.]+)/g, (_, handle) =>
+      `<a href="https://www.instagram.com/${handle}" target="_blank" rel="noopener">@${handle}</a>`)
+    .replace(/(https?:\/\/[^\s<"]+)/g, (url) =>
+      `<a href="${url}" target="_blank" rel="noopener">${url}</a>`);
+}
+
 function openProject(card) {
   if (projectOpen || infoOpen || !landed || cardClickGuard) return;
   projectOpen = true;
@@ -790,14 +800,14 @@ function openProject(card) {
     </div>
     <div class="project-body">
       <h2 class="project-title">${project.title}</h2>
-      <p>${project.copy_p1 || ''}</p>
+      <p>${linkify(project.copy_p1)}</p>
       <div class="img-pair">
         ${imgs[1] ? `<img src="${imgs[1]}" alt="">` : ''}
         ${imgs[2] ? `<img src="${imgs[2]}" alt="">` : ''}
       </div>
-      <p>${project.copy_p2 || ''}</p>
+      <p>${linkify(project.copy_p2)}</p>
       ${imgs[3] ? `<img class="single-wide" src="${imgs[3]}" alt="">` : ''}
-      <p>${project.copy_p3 || ''}</p>
+      <p>${linkify(project.copy_p3)}</p>
       <button class="close-project">Sluit project</button>
     </div>
   `;

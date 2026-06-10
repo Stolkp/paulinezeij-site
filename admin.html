@@ -491,36 +491,63 @@ function openModal(project = null) {
     cSlot.classList.remove('has-img');
   }
 
-  // Image slots
+  renderImgGrid();
+  document.getElementById('project-modal').classList.add('open');
+}
+
+function renderImgGrid() {
   const grid = document.getElementById('images-grid');
   grid.innerHTML = '';
   const captions = ['Hoofdafbeelding (detail)', 'Afbeelding 2', 'Afbeelding 3', 'Afbeelding 4'];
   for (let s = 0; s < 4; s++) {
-    const url = imgExisting[s];
-    grid.innerHTML += `
-      <div>
-        <div class="img-slot ${url ? 'has-img' : ''}" id="img-slot-${s}">
-          <img id="img-prev-${s}" src="${url || ''}" alt="" style="${url ? '' : 'display:none;'}">
-          <div class="slot-label">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 16V8m-4 4 4-4 4 4"/><rect x="3" y="3" width="18" height="18" rx="1"/>
-            </svg>
-            Afbeelding ${s + 1}
-          </div>
-          <input type="file" accept="image/*" id="img-input-${s}">
-          <button class="remove-img" onclick="removeImg(${s})">✕</button>
+    const url = imgExisting[s] || (imgFiles[s] ? URL.createObjectURL(imgFiles[s]) : null);
+    const wrapper = document.createElement('div');
+    wrapper.dataset.slot = s;
+    wrapper.draggable = true;
+    wrapper.style.cursor = 'grab';
+    wrapper.innerHTML = `
+      <div class="img-slot ${url ? 'has-img' : ''}" id="img-slot-${s}">
+        <img id="img-prev-${s}" src="${url || ''}" alt="" style="${url ? '' : 'display:none;'}">
+        <div class="slot-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 16V8m-4 4 4-4 4 4"/><rect x="3" y="3" width="18" height="18" rx="1"/>
+          </svg>
+          Afbeelding ${s + 1}
         </div>
-        <p class="img-slot-caption">${captions[s]}</p>
+        <input type="file" accept="image/*" id="img-input-${s}">
+        <button class="remove-img" onclick="removeImg(${s})">✕</button>
       </div>
+      <p class="img-slot-caption">${captions[s]}</p>
     `;
+    grid.appendChild(wrapper);
   }
 
-  // Bind file inputs after render
+  // Bind file inputs
   for (let s = 0; s < 4; s++) {
     document.getElementById(`img-input-${s}`).addEventListener('change', e => onImgFile(s, e));
   }
 
-  document.getElementById('project-modal').classList.add('open');
+  // Drag-to-reorder
+  let dragFrom = null;
+  grid.querySelectorAll('[data-slot]').forEach(wrap => {
+    wrap.addEventListener('dragstart', () => {
+      dragFrom = Number(wrap.dataset.slot);
+      setTimeout(() => wrap.style.opacity = '0.4', 0);
+    });
+    wrap.addEventListener('dragend', () => { wrap.style.opacity = ''; dragFrom = null; });
+    wrap.addEventListener('dragover', e => { e.preventDefault(); wrap.style.outline = '2px dashed #000'; });
+    wrap.addEventListener('dragleave', () => { wrap.style.outline = ''; });
+    wrap.addEventListener('drop', e => {
+      e.preventDefault();
+      wrap.style.outline = '';
+      const dragTo = Number(wrap.dataset.slot);
+      if (dragFrom === null || dragFrom === dragTo) return;
+      // Swap files + existing URLs
+      [imgFiles[dragFrom], imgFiles[dragTo]] = [imgFiles[dragTo], imgFiles[dragFrom]];
+      [imgExisting[dragFrom], imgExisting[dragTo]] = [imgExisting[dragTo], imgExisting[dragFrom]];
+      renderImgGrid();
+    });
+  });
 }
 
 document.getElementById('add-project-btn').addEventListener('click', () => openModal());

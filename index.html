@@ -466,13 +466,26 @@ async function fetchProjects() {
   const { data } = await db.from('paulinezeij_projects')
     .select('*, paulinezeij_project_images(id, order_num, url)')
     .order('order_num', { ascending: true });
-  // Normalize key to 'project_images' for consistency with static fallback
   (data || []).forEach(p => {
     p.project_images = p.paulinezeij_project_images || [];
     p.project_images.sort((a, b) => a.order_num - b.order_num);
     delete p.paulinezeij_project_images;
   });
   return data && data.length ? data : STATIC_PROJECTS;
+}
+
+async function fetchSettings() {
+  const defaults = {
+    bio_p1: 'Pauline Zeij is een contemporaine kunstenaar gevestigd in de omgeving van Uithoorn. Ze schildert trefzekere portretten van zowel mensen als dieren, en beeldt een geheel eigen magische wereld uit waar mens en dier elkaar regelmatig ontmoeten. Haar werk bevindt zich in particuliere collecties en wordt vertegenwoordigd door de Paard Verzameld Gallery.',
+    bio_p2: 'Haar beeldtaal is zacht en aaibaar, maar ook rauw en reëel — een combinatie die moeiteloos samengaat op het doek. Het gebruik van licht en kleur is voor Pauline van groot belang: het zijn de middelen waarmee ze zowel haar realiteit als haar magie vangt.',
+    quote: 'Licht en kleur zijn voor mij het begin van elk verhaal.',
+    profile_url: 'images/Profile.jpg',
+  };
+  if (!USE_SUPABASE) return defaults;
+  const { data } = await db.from('paulinezeij_settings').select('key, value');
+  if (!data || !data.length) return defaults;
+  const map = Object.fromEntries(data.map(r => [r.key, r.value]));
+  return { ...defaults, ...map };
 }
 
 const REPEAT = 6;
@@ -807,18 +820,20 @@ function openInfo() {
   const bg = document.createElement('div');
   bg.className = 'info-bg';
 
+  const settings = await fetchSettings();
+
   const content = document.createElement('div');
   content.className = 'info-content';
   content.innerHTML = `
     <div class="info-image-wrap">
-      <img class="info-image" src="images/Profile.jpg" alt="">
+      <img class="info-image" src="${settings.profile_url}" alt="">
     </div>
     <div class="info-text">
       <div class="info-paragraphs">
-        <p class="info-p p1">Pauline Zeij is een contemporaine kunstenaar gevestigd in de omgeving van Uithoorn. Ze schildert trefzekere portretten van zowel mensen als dieren, en beeldt een geheel eigen magische wereld uit waar mens en dier elkaar regelmatig ontmoeten. Haar werk bevindt zich in particuliere collecties en wordt vertegenwoordigd door de Paard Verzameld Gallery.</p>
-        <p class="info-p p2">Haar beeldtaal is zacht en aaibaar, maar ook rauw en reëel &mdash; een combinatie die moeiteloos samengaat op het doek. Het gebruik van licht en kleur is voor Pauline van groot belang: het zijn de middelen waarmee ze zowel haar realiteit als haar magie vangt.</p>
+        <p class="info-p p1">${settings.bio_p1}</p>
+        <p class="info-p p2">${settings.bio_p2}</p>
       </div>
-      <p class="info-quote">&ldquo;Licht en kleur zijn voor mij het begin van elk verhaal.&rdquo;</p>
+      <p class="info-quote">&ldquo;${settings.quote}&rdquo;</p>
     </div>
   `;
 

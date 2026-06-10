@@ -683,7 +683,7 @@ let scrollPaused = false;
 function startScroll() {
   const cards = row.querySelectorAll('.card');
   const a = cards[0].getBoundingClientRect().left;
-  const b = cards[5].getBoundingClientRect().left;
+  const b = cards[allProjects.length].getBoundingClientRect().left;
   setWidth = b - a;
 
   window.addEventListener('wheel', onWheel, { passive: false });

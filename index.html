@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -426,42 +428,56 @@
 <img class="ticker" id="ticker" src="images/01.jpg" alt="">
 
 <script>
-const projects = [
-  { title: "Paarden",     tag: "Equine Art" },
-  { title: "Magie",       tag: "Fine Art" },
-  { title: "Kunstenaar",  tag: "Portret" },
-  { title: "Atelier",     tag: "Studie" },
-  { title: "Galerie",     tag: "Collectie" },
+// ---- Supabase setup ----
+const USE_SUPABASE = typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL !== 'JOUW_SUPABASE_URL';
+const db = USE_SUPABASE ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
+
+// Static fallback data (used until Supabase is configured)
+const STATIC_PROJECTS = [
+  { id:'1', order_num:0, title:'Paarden',    tag:'Equine Art', cover_url:'images/01.jpg',
+    copy_p1:'Pauline schildert paarden zoals ze zijn — krachtig, gracieus en vol karakter. Elk schilderij vangt een moment van aanwezigheid, een blik die de toeschouwer raakt en niet loslaat.',
+    copy_p2:'De werken zijn geschilderd in olieverf op groot formaat doek. Licht en kleur zijn de sleutelwoorden: diep donker als achtergrond, warme tinten die het paard doen oplichten.',
+    copy_p3:'Een persoonlijk paardenportret laten maken? Pauline werkt graag in opdracht. Neem contact op via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a> of <a href="tel:+31612854167">+31 6 12 85 41 67</a>.',
+    project_images:[{order_num:0,url:'images/Project-01/01.jpg'},{order_num:1,url:'images/Project-01/02.jpg'},{order_num:2,url:'images/Project-01/03.jpg'},{order_num:3,url:'images/Project-01/04.jpg'}]},
+  { id:'2', order_num:1, title:'Magie',      tag:'Fine Art',   cover_url:'images/02.jpg',
+    copy_p1:'In haar magische werken ontmoeten mensen en dieren elkaar in een wereld die tegelijk vertrouwd en dromerig aanvoelt. Realisme en fantasie vloeien moeiteloos samen op het doek.',
+    copy_p2:'Gemengde techniek op doek — olieverf in combinatie met andere materialen. De heldere kleurvlakken en de precieze details maken haar herkenbare signatuur.',
+    copy_p3:'Interesse in een van haar magische werken? Neem contact op voor beschikbaarheid en prijzen: <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a>.',
+    project_images:[{order_num:0,url:'images/Project-02/01.jpg'},{order_num:1,url:'images/Project-02/02.jpg'},{order_num:2,url:'images/Project-02/03.jpg'},{order_num:3,url:'images/Project-02/04.jpg'}]},
+  { id:'3', order_num:2, title:'Kunstenaar', tag:'Portret',    cover_url:'images/03.jpg',
+    copy_p1:'Pauline Zeij — de kunstenaar achter het werk. Haar passie voor licht, kleur en het samenspel tussen mens en dier is zichtbaar in elk schilderij dat ze maakt.',
+    copy_p2:'Gevestigd in de omgeving van Uithoorn, werkt Pauline vanuit een eigen atelier waar elk doek begint als een dialoog tussen haar en het onderwerp.',
+    copy_p3:'Meer weten over Pauline? Volg haar op Instagram @pauline_zeij_contemporary_art of neem direct contact op via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a>.',
+    project_images:[{order_num:0,url:'images/Project-03/01.jpg'},{order_num:1,url:'images/Project-03/02.jpg'},{order_num:2,url:'images/Project-03/03.jpg'},{order_num:3,url:'images/Project-03/04.jpg'}]},
+  { id:'4', order_num:3, title:'Atelier',    tag:'Studie',     cover_url:'images/04.jpg',
+    copy_p1:'Detailopnames vanuit het atelier — close-ups van schilderijen in wording, verflagen en penseelstreken die de intimiteit van het maakproces tonen.',
+    copy_p2:'Olieverf op doek, vastgelegd in het atelier. Elke close-up onthult de textuur en gelaagdheid die van dichtbij pas volledig zichtbaar wordt.',
+    copy_p3:'Wil je het maakproces volgen? Pauline deelt regelmatig behind-the-scenes op Instagram @pauline_zeij_contemporary_art.',
+    project_images:[{order_num:0,url:'images/Project-04/01.jpg'},{order_num:1,url:'images/Project-04/02.jpg'},{order_num:2,url:'images/Project-04/03.jpg'},{order_num:3,url:'images/Project-04/04.jpg'}]},
+  { id:'5', order_num:4, title:'Galerie',    tag:'Collectie',  cover_url:'images/05.jpg',
+    copy_p1:'Werken in hun uiteindelijke context — ingelijst, opgehangen, thuis. Zo laat Pauline zien hoe haar schilderijen tot leven komen in een woon- of galerie-omgeving.',
+    copy_p2:'Verschillende technieken en formaten, van klein formaat aquarel tot groot formaat olieverf. Vertegenwoordigd door de Paard Verzameld Gallery.',
+    copy_p3:'Interesse in een werk voor uw collectie? Neem contact op met Pauline via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a> of bezoek de Paard Verzameld Gallery.',
+    project_images:[{order_num:0,url:'images/Project-05/01.jpg'},{order_num:1,url:'images/Project-05/02.jpg'},{order_num:2,url:'images/Project-05/03.jpg'},{order_num:3,url:'images/Project-05/04.jpg'}]},
 ];
 
-const tickerSeq = [1, 2, 3, 4, 5, 1];
+async function fetchProjects() {
+  if (!USE_SUPABASE) return STATIC_PROJECTS;
+  const { data } = await db.from('projects')
+    .select('*, project_images(id, order_num, url)')
+    .order('order_num', { ascending: true });
+  (data || []).forEach(p => p.project_images?.sort((a, b) => a.order_num - b.order_num));
+  return data && data.length ? data : STATIC_PROJECTS;
+}
+
 const REPEAT = 6;
 const CENTER_REPEAT_INDEX = 2;
 
-// ---- Build row (repeated for infinite scroll) ----
-const row = document.getElementById('row');
-const firstSetCards = [];
-
-for (let r = 0; r < REPEAT; r++) {
-  projects.forEach((p, i) => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.dataset.idx = String(i);
-    card.innerHTML = `
-      <img src="images/0${i + 1}.jpg" alt="">
-      <div class="meta">
-        <h3>${p.title}</h3>
-        <p>${p.tag}</p>
-      </div>
-    `;
-    card.addEventListener('click', () => openProject(card));
-    row.appendChild(card);
-    if (r === CENTER_REPEAT_INDEX) firstSetCards.push(card);
-  });
-}
-
-const wordmark = document.getElementById('wordmark');
-const tickerImg = document.getElementById('ticker');
+const row        = document.getElementById('row');
+const wordmark   = document.getElementById('wordmark');
+const tickerImg  = document.getElementById('ticker');
+let firstSetCards = [];
+let allProjects   = [];
 
 // ---- Size the giant opening wordmark to ~95vw ----
 function sizeWordmark() {
@@ -472,19 +488,44 @@ function sizeWordmark() {
   wordmark.style.fontSize = fs + 'px';
 }
 
-// ---- Boot ----
+// ---- Boot: fetch projects, build row, start ticker ----
 let landed = false;
-document.fonts.ready.then(() => {
-  const preloads = projects.map((_, i) => new Promise(res => {
+async function init() {
+  allProjects = await fetchProjects();
+
+  // Build carousel row
+  for (let r = 0; r < REPEAT; r++) {
+    allProjects.forEach((p, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.idx = String(i);
+      card.innerHTML = `
+        <img src="${p.cover_url}" alt="${p.title}">
+        <div class="meta">
+          <h3>${p.title}</h3>
+          <p>${p.tag}</p>
+        </div>
+      `;
+      card.addEventListener('click', () => openProject(card));
+      row.appendChild(card);
+      if (r === CENTER_REPEAT_INDEX) firstSetCards.push(card);
+    });
+  }
+
+  // Set first ticker image
+  tickerImg.src = allProjects[0]?.cover_url || 'images/01.jpg';
+
+  // Preload covers then start
+  await document.fonts.ready;
+  await Promise.all(allProjects.map(p => new Promise(res => {
     const img = new Image();
     img.onload = img.onerror = res;
-    img.src = `images/0${i + 1}.jpg`;
-  }));
-  Promise.all(preloads).then(() => {
-    sizeWordmark();
-    setTimeout(runTicker, 250);
-  });
-});
+    img.src = p.cover_url;
+  })));
+  sizeWordmark();
+  setTimeout(runTicker, 250);
+}
+init();
 
 window.addEventListener('resize', () => {
   if (!landed) sizeWordmark();
@@ -497,19 +538,26 @@ wordmark.addEventListener('click', () => {
 });
 
 // INFO button toggles the info panel
+// If a project is open, close it first then open info after the close animation
 document.getElementById('nav-info').addEventListener('click', (e) => {
   e.stopPropagation();
-  if (infoOpen) closeInfo();
-  else openInfo();
+  if (infoOpen) { closeInfo(); return; }
+  if (projectOpen) {
+    closeProject();
+    setTimeout(() => openInfo(), 650);
+    return;
+  }
+  openInfo();
 });
 
-// ---- Ticker: flip through images, land on 4 ----
+// ---- Ticker: flip through project cover images ----
 function runTicker() {
+  const covers = [...allProjects.map(p => p.cover_url), allProjects[0]?.cover_url].filter(Boolean);
   let frame = 0;
   const interval = setInterval(() => {
-    tickerImg.src = `images/0${tickerSeq[frame]}.jpg`;
+    tickerImg.src = covers[frame % covers.length];
     frame++;
-    if (frame >= tickerSeq.length) {
+    if (frame >= covers.length) {
       clearInterval(interval);
       setTimeout(land, 250);
     }
@@ -653,49 +701,15 @@ let currentProjectEl = null;
 let currentSourceCard = null;
 let cardClickGuard = false;
 
-const copyPerSeries = {
-  "Paarden": {
-    p1: "Pauline schildert paarden zoals ze zijn — krachtig, gracieus en vol karakter. Elk schilderij vangt een moment van aanwezigheid, een blik die de toeschouwer raakt en niet loslaat.",
-    p2: "De werken zijn geschilderd in olieverf op groot formaat doek. Licht en kleur zijn de sleutelwoorden: diep donker als achtergrond, warme tinten die het paard doen oplichten.",
-    p3: 'Een persoonlijk paardenportret laten maken? Pauline werkt graag in opdracht. Neem contact op via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a> of <a href="tel:+31612854167">+31 6 12 85 41 67</a>.',
-  },
-  "Magie": {
-    p1: "In haar magische werken ontmoeten mensen en dieren elkaar in een wereld die tegelijk vertrouwd en dromerig aanvoelt. Realisme en fantasie vloeien moeiteloos samen op het doek.",
-    p2: "Gemengde techniek op doek — olieverf in combinatie met andere materialen. De heldere kleurvlakken en de precieze details maken haar herkenbare signatuur.",
-    p3: 'Interesse in een van haar magische werken? Neem contact op voor beschikbaarheid en prijzen: <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a>.',
-  },
-  "Kunstenaar": {
-    p1: "Pauline Zeij — de kunstenaar achter het werk. Haar passie voor licht, kleur en het samenspel tussen mens en dier is zichtbaar in elk schilderij dat ze maakt.",
-    p2: "Gevestigd in de omgeving van Uithoorn, werkt Pauline vanuit een eigen atelier waar elk doek begint als een dialoog tussen haar en het onderwerp.",
-    p3: 'Meer weten over Pauline? Volg haar op Instagram @pauline_zeij_contemporary_art of neem direct contact op via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a>.',
-  },
-  "Atelier": {
-    p1: "Detailopnames vanuit het atelier — close-ups van schilderijen in wording, verflagen en penseelstreken die de intimiteit van het maakproces tonen.",
-    p2: "Olieverf op doek, vastgelegd in het atelier. Elke close-up onthult de textuur en gelaagdheid die van dichtbij pas volledig zichtbaar wordt.",
-    p3: "Wil je het maakproces volgen? Pauline deelt regelmatig behind-the-scenes op Instagram @pauline_zeij_contemporary_art.",
-  },
-  "Galerie": {
-    p1: "Werken in hun uiteindelijke context — ingelijst, opgehangen, thuis. Zo laat Pauline zien hoe haar schilderijen tot leven komen in een woon- of galerie-omgeving.",
-    p2: "Verschillende technieken en formaten, van klein formaat aquarel tot groot formaat olieverf. Vertegenwoordigd door de Paard Verzameld Gallery.",
-    p3: 'Interesse in een werk voor uw collectie? Neem contact op met Pauline via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a> of bezoek de Paard Verzameld Gallery.',
-  },
-};
-const projectCopy = (title) => copyPerSeries[title] || {
-  p1: "Pauline Zeij schildert trefzekere portretten van mensen en dieren.",
-  p2: "Olieverf op doek, met aandacht voor licht en kleur.",
-  p3: 'Neem contact op via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a>.',
-};
-
 function openProject(card) {
   if (projectOpen || infoOpen || !landed || cardClickGuard) return;
   projectOpen = true;
   scrollPaused = true;
   document.body.classList.add('project-open');
 
-  const idx = parseInt(card.dataset.idx, 10);
-  const num = String(idx + 1).padStart(2, '0');
-  const project = projects[idx];
-  const copy = projectCopy(project.title);
+  const idx     = parseInt(card.dataset.idx, 10);
+  const project = allProjects[idx];
+  const imgs    = (project.project_images || []).map(i => i.url);
   currentSourceCard = card;
 
   // Build DOM
@@ -706,10 +720,10 @@ function openProject(card) {
   content.className = 'project-content';
   content.innerHTML = `
     <div class="project-hero">
-      <img class="hero-left" src="images/Project-${num}/01.jpg" alt="">
+      <img class="hero-left" src="${imgs[0] || project.cover_url}" alt="${project.title}">
       <div class="hero-right">
         <div class="hero-card">
-          <img src="images/0${idx + 1}.jpg" alt="">
+          <img src="${project.cover_url}" alt="${project.title}">
           <div class="meta">
             <h3>${project.title}</h3>
             <p>${project.tag}</p>
@@ -719,14 +733,14 @@ function openProject(card) {
     </div>
     <div class="project-body">
       <h2 class="project-title">${project.title}</h2>
-      <p>${copy.p1}</p>
+      <p>${project.copy_p1 || ''}</p>
       <div class="img-pair">
-        <img src="images/Project-${num}/02.jpg" alt="">
-        <img src="images/Project-${num}/03.jpg" alt="">
+        ${imgs[1] ? `<img src="${imgs[1]}" alt="">` : ''}
+        ${imgs[2] ? `<img src="${imgs[2]}" alt="">` : ''}
       </div>
-      <p>${copy.p2}</p>
-      <img class="single-wide" src="images/Project-${num}/04.jpg" alt="">
-      <p>${copy.p3}</p>
+      <p>${project.copy_p2 || ''}</p>
+      ${imgs[3] ? `<img class="single-wide" src="${imgs[3]}" alt="">` : ''}
+      <p>${project.copy_p3 || ''}</p>
       <button class="close-project">Sluit project</button>
     </div>
   `;

@@ -850,7 +850,7 @@ function openProject(card) {
 let infoOpen = false;
 let currentInfoEls = null;
 
-function openInfo() {
+async function openInfo() {
   if (infoOpen || projectOpen || !landed) return;
   infoOpen = true;
   scrollPaused = true;

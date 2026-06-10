@@ -463,15 +463,21 @@ const STATIC_PROJECTS = [
 
 async function fetchProjects() {
   if (!USE_SUPABASE) return STATIC_PROJECTS;
-  const { data } = await db.from('paulinezeij_projects')
-    .select('*, paulinezeij_project_images(id, order_num, url)')
-    .order('order_num', { ascending: true });
-  (data || []).forEach(p => {
-    p.project_images = p.paulinezeij_project_images || [];
-    p.project_images.sort((a, b) => a.order_num - b.order_num);
-    delete p.paulinezeij_project_images;
-  });
-  return data && data.length ? data : STATIC_PROJECTS;
+  try {
+    const fetchPromise = db.from('paulinezeij_projects')
+      .select('*, paulinezeij_project_images(id, order_num, url)')
+      .order('order_num', { ascending: true });
+    const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
+    const { data } = await Promise.race([fetchPromise, timeoutPromise]);
+    (data || []).forEach(p => {
+      p.project_images = p.paulinezeij_project_images || [];
+      p.project_images.sort((a, b) => a.order_num - b.order_num);
+      delete p.paulinezeij_project_images;
+    });
+    return data && data.length ? data : STATIC_PROJECTS;
+  } catch {
+    return STATIC_PROJECTS;
+  }
 }
 
 async function fetchSettings() {
@@ -554,8 +560,26 @@ async function init() {
     setTimeout(runTicker, 250);
   } catch (err) {
     console.error('Init fout:', err);
-    allProjects = STATIC_PROJECTS;
-    init();
+    // Fallback: gebruik statische projecten zonder opnieuw te proberen
+    if (!landed) {
+      allProjects = STATIC_PROJECTS;
+      row.innerHTML = '';
+      firstSetCards.length = 0;
+      for (let r = 0; r < REPEAT; r++) {
+        allProjects.forEach((p, i) => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.dataset.idx = String(i);
+          card.innerHTML = `<img src="${p.cover_url}" alt="${p.title}"><div class="meta"><h3>${p.title}</h3><p>${p.tag}</p></div>`;
+          card.addEventListener('click', () => openProject(card));
+          row.appendChild(card);
+          if (r === CENTER_REPEAT_INDEX) firstSetCards.push(card);
+        });
+      }
+      tickerImg.src = allProjects[0].cover_url;
+      sizeWordmark();
+      setTimeout(runTicker, 250);
+    }
   }
 }
 init();

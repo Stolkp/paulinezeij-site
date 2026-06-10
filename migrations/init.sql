@@ -42,10 +42,15 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('paulinezeij', 'paulinezeij', true)
 ON CONFLICT DO NOTHING;
 
-CREATE POLICY IF NOT EXISTS "pz public read storage"   ON storage.objects FOR SELECT  USING (bucket_id = 'paulinezeij');
-CREATE POLICY IF NOT EXISTS "pz auth upload storage"   ON storage.objects FOR INSERT  WITH CHECK (bucket_id = 'paulinezeij' AND auth.role() = 'authenticated');
-CREATE POLICY IF NOT EXISTS "pz auth delete storage"   ON storage.objects FOR DELETE  USING (bucket_id = 'paulinezeij' AND auth.role() = 'authenticated');
-CREATE POLICY IF NOT EXISTS "pz auth update storage"   ON storage.objects FOR UPDATE  USING (bucket_id = 'paulinezeij' AND auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "pz public read storage"  ON storage.objects;
+DROP POLICY IF EXISTS "pz auth upload storage"  ON storage.objects;
+DROP POLICY IF EXISTS "pz auth delete storage"  ON storage.objects;
+DROP POLICY IF EXISTS "pz auth update storage"  ON storage.objects;
+
+CREATE POLICY "pz public read storage"  ON storage.objects FOR SELECT  USING (bucket_id = 'paulinezeij');
+CREATE POLICY "pz auth upload storage"  ON storage.objects FOR INSERT  WITH CHECK (bucket_id = 'paulinezeij' AND auth.role() = 'authenticated');
+CREATE POLICY "pz auth delete storage"  ON storage.objects FOR DELETE  USING (bucket_id = 'paulinezeij' AND auth.role() = 'authenticated');
+CREATE POLICY "pz auth update storage"  ON storage.objects FOR UPDATE  USING (bucket_id = 'paulinezeij' AND auth.role() = 'authenticated');
 
 -- ---- Storage bucket ----
 INSERT INTO storage.buckets (id, name, public)

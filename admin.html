@@ -331,7 +331,7 @@ checkAuth();
 let projects = [];
 
 async function loadProjects() {
-  const { data } = await supa.from('projects')
+  const { data } = await supa.from('paulinezeij_projects')
     .select('*, project_images(id, order_num, url)')
     .order('order_num', { ascending: true });
   projects = (data || []).map(p => {
@@ -398,7 +398,7 @@ async function saveOrder() {
     id: c.dataset.id, order_num: i
   }));
   for (const u of updates) {
-    await supa.from('projects').update({ order_num: u.order_num }).eq('id', u.id);
+    await supa.from('paulinezeij_projects').update({ order_num: u.order_num }).eq('id', u.id);
   }
   toast('Volgorde opgeslagen');
   await loadProjects();
@@ -406,7 +406,7 @@ async function saveOrder() {
 
 async function deleteProject(id) {
   if (!confirm('Serie verwijderen? Dit verwijdert ook alle bijbehorende afbeeldingen.')) return;
-  await supa.from('projects').delete().eq('id', id);
+  await supa.from('paulinezeij_projects').delete().eq('id', id);
   toast('Serie verwijderd');
   await loadProjects();
 }
@@ -564,11 +564,11 @@ document.getElementById('modal-save').addEventListener('click', async () => {
     };
     let projectId = editingId;
     if (editingId) {
-      await supa.from('projects').update(payload).eq('id', editingId);
+      await supa.from('paulinezeij_projects').update(payload).eq('id', editingId);
     } else {
       const maxOrder = projects.length ? Math.max(...projects.map(p => p.order_num)) + 1 : 0;
       payload.order_num = maxOrder;
-      const { data, error } = await supa.from('projects').insert(payload).select().single();
+      const { data, error } = await supa.from('paulinezeij_projects').insert(payload).select().single();
       if (error) throw error;
       projectId = data.id;
     }
@@ -580,7 +580,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
         const hadImg = existing[s];
         if (hadImg && !imgExisting[s] && !imgFiles[s]) {
           // Removed
-          await supa.from('project_images').delete().eq('id', hadImg.id);
+          await supa.from('paulinezeij_project_images').delete().eq('id', hadImg.id);
         }
       }
     }
@@ -595,9 +595,9 @@ document.getElementById('modal-save').addEventListener('click', async () => {
       // Delete existing image for this slot if replacing
       if (editingId && imgExisting[s]) {
         const existing = projects.find(p => p.id === editingId)?.project_images || [];
-        if (existing[s]) await supa.from('project_images').delete().eq('id', existing[s].id);
+        if (existing[s]) await supa.from('paulinezeij_project_images').delete().eq('id', existing[s].id);
       }
-      await supa.from('project_images').insert({ project_id: projectId, order_num: s, url: publicUrl });
+      await supa.from('paulinezeij_project_images').insert({ project_id: projectId, order_num: s, url: publicUrl });
     }
 
     await loadProjects();

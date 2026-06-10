@@ -1,14 +1,11 @@
 -- ============================================================
 -- Pauline Zeij Portfolio — Supabase migratie
+-- Gebruik je bestaande Supabase project (gedeeld).
+-- Tabelnamen hebben prefix 'paulinezeij_' om conflicten te vermijden.
 -- Voer uit in Supabase Dashboard → SQL Editor
 -- ============================================================
 
--- Opruimen als er al iets bestaat
-DROP TABLE IF EXISTS project_images CASCADE;
-DROP TABLE IF EXISTS projects CASCADE;
-
--- Projecten tabel (bigint id = Supabase standaard)
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS paulinezeij_projects (
   id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   order_num   int    NOT NULL DEFAULT 0,
   title       text   NOT NULL,
@@ -20,30 +17,35 @@ CREATE TABLE projects (
   created_at  timestamptz DEFAULT NOW()
 );
 
--- Projectafbeeldingen (max 4 per project, op volgorde)
-CREATE TABLE project_images (
+CREATE TABLE IF NOT EXISTS paulinezeij_project_images (
   id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  project_id  bigint NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  project_id  bigint NOT NULL REFERENCES paulinezeij_projects(id) ON DELETE CASCADE,
   order_num   int    NOT NULL DEFAULT 0,
   url         text   NOT NULL,
   created_at  timestamptz DEFAULT NOW()
 );
 
--- Index voor snelle sortering
-CREATE INDEX idx_projects_order        ON projects(order_num);
-CREATE INDEX idx_project_images_project ON project_images(project_id, order_num);
+CREATE INDEX IF NOT EXISTS idx_pz_projects_order         ON paulinezeij_projects(order_num);
+CREATE INDEX IF NOT EXISTS idx_pz_project_images_project ON paulinezeij_project_images(project_id, order_num);
 
 -- ---- RLS ----
-ALTER TABLE projects       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE project_images ENABLE ROW LEVEL SECURITY;
+ALTER TABLE paulinezeij_projects        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE paulinezeij_project_images  ENABLE ROW LEVEL SECURITY;
 
--- Iedereen mag lezen (public portfolio)
-CREATE POLICY "public read projects"       ON projects       FOR SELECT USING (true);
-CREATE POLICY "public read project_images" ON project_images FOR SELECT USING (true);
+CREATE POLICY "pz public read projects"        ON paulinezeij_projects        FOR SELECT USING (true);
+CREATE POLICY "pz public read project_images"  ON paulinezeij_project_images  FOR SELECT USING (true);
+CREATE POLICY "pz auth write projects"         ON paulinezeij_projects        FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "pz auth write project_images"   ON paulinezeij_project_images  FOR ALL USING (auth.role() = 'authenticated');
 
--- Alleen ingelogde gebruikers mogen schrijven
-CREATE POLICY "auth write projects"        ON projects       FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "auth write project_images"  ON project_images FOR ALL USING (auth.role() = 'authenticated');
+-- ---- Storage bucket (sla over als 'paulinezeij' al bestaat) ----
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('paulinezeij', 'paulinezeij', true)
+ON CONFLICT DO NOTHING;
+
+CREATE POLICY IF NOT EXISTS "pz public read storage"   ON storage.objects FOR SELECT  USING (bucket_id = 'paulinezeij');
+CREATE POLICY IF NOT EXISTS "pz auth upload storage"   ON storage.objects FOR INSERT  WITH CHECK (bucket_id = 'paulinezeij' AND auth.role() = 'authenticated');
+CREATE POLICY IF NOT EXISTS "pz auth delete storage"   ON storage.objects FOR DELETE  USING (bucket_id = 'paulinezeij' AND auth.role() = 'authenticated');
+CREATE POLICY IF NOT EXISTS "pz auth update storage"   ON storage.objects FOR UPDATE  USING (bucket_id = 'paulinezeij' AND auth.role() = 'authenticated');
 
 -- ---- Storage bucket ----
 INSERT INTO storage.buckets (id, name, public)

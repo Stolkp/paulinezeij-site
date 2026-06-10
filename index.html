@@ -463,10 +463,15 @@ const STATIC_PROJECTS = [
 
 async function fetchProjects() {
   if (!USE_SUPABASE) return STATIC_PROJECTS;
-  const { data } = await db.from('projects')
-    .select('*, project_images(id, order_num, url)')
+  const { data } = await db.from('paulinezeij_projects')
+    .select('*, paulinezeij_project_images(id, order_num, url)')
     .order('order_num', { ascending: true });
-  (data || []).forEach(p => p.project_images?.sort((a, b) => a.order_num - b.order_num));
+  // Normalize key to 'project_images' for consistency with static fallback
+  (data || []).forEach(p => {
+    p.project_images = p.paulinezeij_project_images || [];
+    p.project_images.sort((a, b) => a.order_num - b.order_num);
+    delete p.paulinezeij_project_images;
+  });
   return data && data.length ? data : STATIC_PROJECTS;
 }
 

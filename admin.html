@@ -577,7 +577,7 @@ function removeImg(slot) {
 }
 
 window.removeImg = removeImg;
-window.editProject = (id) => openModal(projects.find(p => p.id === id));
+window.editProject = (id) => openModal(projects.find(p => String(p.id) === String(id)));
 window.deleteProject = deleteProject;
 
 // ---- Save ----
@@ -620,7 +620,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
 
     // Handle project images: delete old ones that were removed, upload new ones
     if (editingId) {
-      const existing = projects.find(p => p.id === editingId)?.project_images || [];
+      const existing = projects.find(p => String(p.id) === String(editingId))?.project_images || [];
       for (let s = 0; s < 4; s++) {
         const hadImg = existing[s];
         if (hadImg && !imgExisting[s] && !imgFiles[s]) {
@@ -639,7 +639,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
       const { data: { publicUrl } } = supa.storage.from('paulinezeij').getPublicUrl(path);
       // Delete existing image for this slot if replacing
       if (editingId && imgExisting[s]) {
-        const existing = projects.find(p => p.id === editingId)?.project_images || [];
+        const existing = projects.find(p => String(p.id) === String(editingId))?.project_images || [];
         if (existing[s]) await supa.from('paulinezeij_project_images').delete().eq('id', existing[s].id);
       }
       await supa.from('paulinezeij_project_images').insert({ project_id: projectId, order_num: s, url: publicUrl });

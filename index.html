@@ -353,6 +353,11 @@
   body:not(.loading) .wordmark-sub { opacity: 1; }
   body.info-open .wordmark-sub { color: #fff; }
 
+  /* ----- Rich text opmaak in project copy ----- */
+  .project-body p h3 { font-size: 17px; font-weight: 600; margin: 4px 0; }
+  .project-body p strong { font-weight: 700; }
+  .project-body p em { font-style: italic; }
+
   /* ----- Links inside project copy ----- */
   .project-body p a {
     color: inherit;
@@ -376,10 +381,10 @@
     .row { gap: 4vw; padding-left: 4vw; }
     .viewport { top: 46%; }
 
-    /* Project hero: stapelen, groot beeld */
-    .project-hero { flex-direction: column; height: auto; min-height: 100vh; }
-    .hero-left { width: 100vw; height: 56vh; min-height: 0; }
-    .hero-right { width: 100vw; height: auto; padding: 36px 24px 32px; justify-content: center; }
+    /* Project hero: stapelen, groot beeld, ruimte voor header */
+    .project-hero { flex-direction: column; height: auto; min-height: 100dvh; }
+    .hero-left { width: 100vw; height: 52vh; min-height: 0; margin-top: 64px; }
+    .hero-right { width: 100vw; height: auto; padding: 28px 24px 32px; justify-content: center; }
     .hero-card { width: 42vw; min-width: 0; }
 
     /* Project body */
@@ -396,20 +401,35 @@
   }
 
   @media (max-width: 480px) {
-    /* Carousel: 1 groot schilderij + peek — impactvoller op telefoon */
+    /* Carousel */
     .card { width: 72vw; min-width: 0; }
     .row { gap: 5vw; padding-left: 5vw; }
     .viewport { top: 46%; }
 
-    /* Info panel: verticaal stapelen op kleine telefoon */
-    .info-image-wrap { left: 20px; right: 20px; width: auto; top: 72px; bottom: auto; height: 36vh; }
-    .info-text { left: 20px; right: 20px; width: auto; top: calc(36vh + 88px); bottom: 16px; overflow-y: auto; }
+    /* Info panel: afbeelding direct onder header, tekst scrollbaar eronder */
+    .info-image-wrap {
+      left: 0; right: 0; width: 100%;
+      top: 60px; bottom: auto;
+      height: 42vh;
+    }
+    .info-image { width: 100%; height: 100%; object-fit: cover; }
+    .info-text {
+      left: 20px; right: 20px; width: auto;
+      top: calc(60px + 42vh + 16px);
+      bottom: 16px;
+      overflow-y: auto;
+    }
     .info-quote { font-size: 16px; }
     .info-p { font-size: 13px; }
 
-    /* Hero */
-    .hero-left { height: 52vh; }
-    .hero-card { width: 52vw; }
+    /* Project hero: afbeelding direct onder header */
+    .project-hero { flex-direction: column; min-height: 100dvh; height: auto; }
+    .hero-left { width: 100vw; height: 48vh; margin-top: 60px; }
+    .hero-right { width: 100vw; height: auto; padding: 24px 20px 32px; }
+    .hero-card { width: 48vw; min-width: 0; }
+    .project-body { padding: 48px 20px 60px; }
+    .project-body h2.project-title { font-size: 22px; }
+    .project-body .img-pair { grid-template-columns: 1fr; gap: 12px; }
   }
 </style>
 </head>

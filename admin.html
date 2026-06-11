@@ -116,6 +116,29 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   transition: border-color .2s;
 }
 .field input:focus, .field textarea:focus { border-color:#000; }
+
+/* ---- Rich text editor ---- */
+.rte-wrap { border:1px solid #ddd; transition:border-color .2s; }
+.rte-wrap:focus-within { border-color:#000; }
+.rte-toolbar {
+  display:flex; gap:4px; padding:6px 8px;
+  border-bottom:1px solid #eee; background:#f9f9f9;
+}
+.rte-toolbar button {
+  padding:3px 8px; font-size:13px; font-family:inherit;
+  border:1px solid #ddd; background:#fff; cursor:pointer;
+  line-height:1.4; border-radius:2px;
+}
+.rte-toolbar button:hover { background:#000; color:#fff; border-color:#000; }
+.rte-toolbar button.active { background:#000; color:#fff; border-color:#000; }
+.rte-field {
+  min-height:80px; padding:10px 12px; font-size:14px;
+  font-family:inherit; outline:none; line-height:1.6;
+}
+.rte-field h3 { font-size:16px; font-weight:600; margin:4px 0; }
+.rte-field strong { font-weight:700; }
+.rte-field em { font-style:italic; }
+.rte-field:empty:before { content:attr(placeholder); color:#aaa; pointer-events:none; }
 .field-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 
 /* ---- Image upload grid ---- */
@@ -306,15 +329,39 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
       <div class="field" style="margin-top:24px;">
         <label>Tekst blok 1 — Het werk</label>
-        <textarea id="f-p1" rows="3" placeholder="Beschrijf de serie..."></textarea>
+        <div class="rte-wrap">
+          <div class="rte-toolbar" data-rte="f-p1">
+            <button type="button" data-cmd="bold" title="Vet"><b>B</b></button>
+            <button type="button" data-cmd="italic" title="Cursief"><i>I</i></button>
+            <button type="button" data-cmd="heading" title="Koptekst">H</button>
+            <button type="button" data-cmd="removeFormat" title="Opmaak verwijderen">✕</button>
+          </div>
+          <div class="rte-field" id="f-p1" contenteditable="true" placeholder="Beschrijf de serie..."></div>
+        </div>
       </div>
       <div class="field">
         <label>Tekst blok 2 — Techniek / achtergrond</label>
-        <textarea id="f-p2" rows="3" placeholder="Techniek, materialen..."></textarea>
+        <div class="rte-wrap">
+          <div class="rte-toolbar" data-rte="f-p2">
+            <button type="button" data-cmd="bold" title="Vet"><b>B</b></button>
+            <button type="button" data-cmd="italic" title="Cursief"><i>I</i></button>
+            <button type="button" data-cmd="heading" title="Koptekst">H</button>
+            <button type="button" data-cmd="removeFormat" title="Opmaak verwijderen">✕</button>
+          </div>
+          <div class="rte-field" id="f-p2" contenteditable="true" placeholder="Techniek, materialen..."></div>
+        </div>
       </div>
       <div class="field">
         <label>Tekst blok 3 — Contact / in opdracht</label>
-        <textarea id="f-p3" rows="3" placeholder="Contact of bestelinfo..."></textarea>
+        <div class="rte-wrap">
+          <div class="rte-toolbar" data-rte="f-p3">
+            <button type="button" data-cmd="bold" title="Vet"><b>B</b></button>
+            <button type="button" data-cmd="italic" title="Cursief"><i>I</i></button>
+            <button type="button" data-cmd="heading" title="Koptekst">H</button>
+            <button type="button" data-cmd="removeFormat" title="Opmaak verwijderen">✕</button>
+          </div>
+          <div class="rte-field" id="f-p3" contenteditable="true" placeholder="Contact of bestelinfo..."></div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -474,9 +521,9 @@ function openModal(project = null) {
   document.getElementById('modal-title').textContent = project ? 'Serie bewerken' : 'Serie toevoegen';
   document.getElementById('f-title').value = project?.title  || '';
   document.getElementById('f-tag').value   = project?.tag    || '';
-  document.getElementById('f-p1').value    = project?.copy_p1 || '';
-  document.getElementById('f-p2').value    = project?.copy_p2 || '';
-  document.getElementById('f-p3').value    = project?.copy_p3 || '';
+  document.getElementById('f-p1').innerHTML = project?.copy_p1 || '';
+  document.getElementById('f-p2').innerHTML = project?.copy_p2 || '';
+  document.getElementById('f-p3').innerHTML = project?.copy_p3 || '';
 
   // Cover slot
   const cSlot = document.getElementById('cover-slot');
@@ -549,6 +596,46 @@ function renderImgGrid() {
     });
   });
 }
+
+// ---- Rich text editor toolbar ----
+document.querySelectorAll('.rte-toolbar').forEach(toolbar => {
+  toolbar.addEventListener('mousedown', e => {
+    const btn = e.target.closest('button[data-cmd]');
+    if (!btn) return;
+    e.preventDefault(); // bewaar selectie
+    const rteId = toolbar.dataset.rte;
+    const field = document.getElementById(rteId);
+    field.focus();
+    const cmd = btn.dataset.cmd;
+    if (cmd === 'heading') {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount) {
+        const range = sel.getRangeAt(0);
+        const block = range.startContainer.nodeType === 3
+          ? range.startContainer.parentElement
+          : range.startContainer;
+        const inH3 = block.closest('h3');
+        if (inH3) {
+          // Heading → terugzetten naar gewone tekst
+          const p = document.createElement('span');
+          p.innerHTML = inH3.innerHTML;
+          inH3.replaceWith(p);
+        } else {
+          document.execCommand('formatBlock', false, 'h3');
+        }
+      }
+    } else if (cmd === 'removeFormat') {
+      document.execCommand('removeFormat');
+      document.execCommand('formatBlock', false, 'div');
+    } else {
+      document.execCommand(cmd);
+    }
+    // Update active state
+    toolbar.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    if (document.queryCommandState('bold')) toolbar.querySelector('[data-cmd=bold]')?.classList.add('active');
+    if (document.queryCommandState('italic')) toolbar.querySelector('[data-cmd=italic]')?.classList.add('active');
+  });
+});
 
 document.getElementById('add-project-btn').addEventListener('click', () => openModal());
 document.getElementById('modal-close').addEventListener('click', closeModal);
@@ -630,9 +717,9 @@ document.getElementById('modal-save').addEventListener('click', async () => {
     // Upsert project row
     const payload = {
       title, tag, cover_url,
-      copy_p1: document.getElementById('f-p1').value,
-      copy_p2: document.getElementById('f-p2').value,
-      copy_p3: document.getElementById('f-p3').value,
+      copy_p1: document.getElementById('f-p1').innerHTML,
+      copy_p2: document.getElementById('f-p2').innerHTML,
+      copy_p3: document.getElementById('f-p3').innerHTML,
     };
     let projectId = editingId;
     if (editingId) {

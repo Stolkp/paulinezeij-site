@@ -353,6 +353,46 @@
   body:not(.loading) .wordmark-sub { opacity: 1; }
   body.info-open .wordmark-sub { color: #fff; }
 
+  /* ----- Bottom footer (social + credit) ----- */
+  .site-footer {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 22px 48px 26px;
+    z-index: 12;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.9s ease-in-out;
+  }
+  body:not(.loading) .site-footer { opacity: 1; pointer-events: auto; }
+  .footer-socials {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .social-link {
+    display: inline-flex;
+    color: #000;
+    opacity: 0.55;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .social-link:hover { opacity: 1; transform: translateY(-2px); }
+  .social-link svg { width: 20px; height: 20px; display: block; }
+  .footer-credit {
+    font-family: 'Figtree', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #000;
+    opacity: 0.4;
+    white-space: nowrap;
+  }
+
   /* ----- Rich text opmaak in project copy ----- */
   .project-body p h3 { font-size: 17px; font-weight: 600; margin: 4px 0; }
   .project-body p strong { font-weight: 700; }
@@ -430,6 +470,12 @@
     .project-body { padding: 48px 20px 60px; }
     .project-body h2.project-title { font-size: 22px; }
     .project-body .img-pair { grid-template-columns: 1fr; gap: 12px; }
+
+    /* Footer: compact on phones */
+    .site-footer { padding: 16px 20px calc(14px + env(safe-area-inset-bottom)); gap: 9px; }
+    .footer-socials { gap: 20px; }
+    .social-link svg { width: 19px; height: 19px; }
+    .footer-credit { font-size: 9px; letter-spacing: 0.18em; }
   }
 </style>
 </head>
@@ -447,6 +493,25 @@
 <h1 class="wordmark" id="wordmark">Pauline Zeij</h1>
 <p class="wordmark-sub">Contemporary Art</p>
 <img class="ticker" id="ticker" src="images/01.jpg" alt="">
+
+<footer class="site-footer">
+  <div class="footer-socials">
+    <a class="social-link" href="https://www.instagram.com/pauline_zeij_contemporary_art" target="_blank" rel="noopener" aria-label="Instagram">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2" y="2" width="20" height="20" rx="5.5"/>
+        <circle cx="12" cy="12" r="4.2"/>
+        <circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/>
+      </svg>
+    </a>
+    <a class="social-link" href="mailto:info@paulinezeij.nl" aria-label="E-mail">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/>
+        <path d="M3.5 6.5 12 12.5 20.5 6.5"/>
+      </svg>
+    </a>
+  </div>
+  <span class="footer-credit">© 2026 Pauline Zeij — Contemporary Art</span>
+</footer>
 
 <script>
 // ---- Supabase setup ----
@@ -734,11 +799,16 @@ function land() {
   });
 }
 
-// ---- Infinite horizontal drift + wheel ----
+// ---- Infinite horizontal drift + wheel + touch ----
 let scrollX = 0;
 let baseVelocity = -0.6;
 let userVel = 0;
 let scrollPaused = false;
+
+// Touch-drag state (mobile)
+let touchActive = false;
+let lastTouchX = 0;
+let lastTouchDx = 0;
 
 function startScroll() {
   const cards = row.querySelectorAll('.card');
@@ -747,6 +817,9 @@ function startScroll() {
   setWidth = b - a;
 
   window.addEventListener('wheel', onWheel, { passive: false });
+  window.addEventListener('touchstart', onTouchStart, { passive: true });
+  window.addEventListener('touchmove', onTouchMove, { passive: false });
+  window.addEventListener('touchend', onTouchEnd, { passive: true });
   requestAnimationFrame(tick);
 }
 
@@ -757,11 +830,39 @@ function onWheel(e) {
   userVel -= d * 0.6;
 }
 
+function onTouchStart(e) {
+  if (scrollPaused || projectOpen || infoOpen || !landed) return;
+  touchActive = true;
+  lastTouchX = e.touches[0].clientX;
+  lastTouchDx = 0;
+  userVel = 0;                          // grab halts any momentum
+}
+
+function onTouchMove(e) {
+  if (!touchActive || scrollPaused) return;   // overlays scroll normally
+  const x = e.touches[0].clientX;
+  lastTouchDx = x - lastTouchX;
+  lastTouchX = x;
+  if (Math.abs(lastTouchDx) > 4) cardClickGuard = true;  // a drag, not a tap
+  scrollX += lastTouchDx;               // carousel follows the finger
+  e.preventDefault();
+}
+
+function onTouchEnd() {
+  if (!touchActive) return;
+  touchActive = false;
+  userVel = lastTouchDx * 0.9;          // flick momentum carries on
+  // Release the tap-guard shortly after, so a real tap still opens a project
+  setTimeout(() => { cardClickGuard = false; }, 80);
+}
+
 function tick() {
   if (!scrollPaused) {
-    scrollX += baseVelocity + userVel;
-    userVel *= 0.9;
-    if (Math.abs(userVel) < 0.01) userVel = 0;
+    if (!touchActive) {                 // finger drives scrollX while held
+      scrollX += baseVelocity + userVel;
+      userVel *= 0.9;
+      if (Math.abs(userVel) < 0.01) userVel = 0;
+    }
 
     if (setWidth > 0) {
       while (scrollX <= -setWidth) scrollX += setWidth;

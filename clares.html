@@ -243,6 +243,31 @@
     transform: translateY(0);
   }
 
+  /* ---- Maker credit (subtle, bottom-centre) ---- */
+  #credit {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    z-index: 19;
+    font-family: 'Tenor Sans', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--nav-text);
+    text-decoration: none;
+    padding-left: 0.28em;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s ease;
+  }
+  #credit.visible { opacity: 0.5; pointer-events: auto; }
+  #credit:hover { opacity: 0.85; }
+  /* keep the credit out of the way while a project or the info panel is open */
+  body:has(#project.active) #credit,
+  body:has(#info.show) #credit { opacity: 0 !important; pointer-events: none; }
+
   /* ====================================================================
      Info overlay ("over haar")
      ==================================================================== */
@@ -523,6 +548,9 @@
   </div>
 
   <canvas id="scene"></canvas>
+
+  <!-- Maker credit -->
+  <a id="credit" href="https://www.stolkwebdesign.nl" target="_blank" rel="noopener">Website door Stolkwebdesign</a>
 
   <!-- Project detail page (revealed after a card is clicked) -->
   <div id="project">
@@ -986,6 +1014,7 @@
   const revealEls = ['p-title', 'p-eyebrow', 'p-1', 'p-2', 'p-3', 'p-images'].map(id => document.getElementById(id));
   const hamburgerEl = document.getElementById('hamburger');
   const mobileMenuEl = document.getElementById('mobile-menu');
+  const creditEl = document.getElementById('credit');
 
   // Info overlay
   const infoEl = document.getElementById('info');
@@ -1209,6 +1238,7 @@
 
     if (!navShown && elapsed > NAV_DELAY) {
       navEl.classList.add('visible');
+      creditEl.classList.add('visible');
       navShown = true;
     }
   }

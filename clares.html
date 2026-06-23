@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pauline Zeij — Contemporary Art</title>
+<meta name="description" content="Pauline Zeij — contemporaine kunstenaar. Trefzekere portretten van mens en dier, en een geheel eigen magische wereld." />
+<meta property="og:title" content="Pauline Zeij — Contemporary Art" />
+<meta property="og:description" content="Contemporaine kunstenaar. Licht en kleur als begin van elk verhaal." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Tenor+Sans&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<style>
+  :root {
+    --bg: #F5F1EC;
+    --nav-text: #404040;
+    --divider: #D9D9D9;
+    --logo: #1E1B18;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  body {
+    font-family: 'Tenor Sans', serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- Background fade-in overlay (white -> transparent) ---- */
+  #bg-fade {
+    position: fixed;
+    inset: 0;
+    background: #ffffff;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 1;
+    animation: bgFade 0.8s ease forwards;
+  }
+  @keyframes bgFade { to { opacity: 0; } }
+
+  /* ---- Navigation ---- */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+  nav.visible { opacity: 1; }
+
+  .nav-inner {
+    width: 100%;
+    padding: 28px var(--nav-pad) 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+  }
+
+  :root { --nav-pad: 48px; }
+
+  .nav-group {
+    display: flex;
+    gap: 56px;
+  }
+
+  .nav-link {
+    font-family: 'Tenor Sans', serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--nav-text);
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+  }
+  .nav-link:hover { opacity: 0.55; }
+
+  .nav-brand {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -52%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .nav-brand-name {
+    font-family: 'Tenor Sans', serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #000000;
+    padding-left: 0.22em; /* optical centering for letter-spacing */
+  }
+  .nav-brand-sub {
+    font-family: 'Tenor Sans', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: var(--nav-text);
+    padding-left: 0.34em;
+  }
+
+  /* Divider spans full width, inset by the same padding as the nav buttons. */
+  .nav-divider {
+    height: 1px;
+    margin: 0 var(--nav-pad);
+    background: var(--divider);
+  }
+
+  /* ---- 3D canvas ---- */
+  #scene {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: block;
+    cursor: grab;
+    touch-action: none;
+  }
+  #scene.dragging { cursor: grabbing; }
+
+  /* Mobile-only chrome is hidden on desktop/tablet by default. */
+  .nav-brand-mobile,
+  #hamburger,
+  #mobile-menu { display: none; }
+
+  /* ====================================================================
+     Project detail page (shown after a card is clicked)
+     ==================================================================== */
+  #project-img {
+    position: fixed;
+    z-index: 15;
+    object-fit: cover;
+    object-position: center;
+    display: none;
+    border-radius: 0;
+    box-shadow: 0 12px 40px rgba(42, 37, 32, 0.15);
+    will-change: top, left, width, height;
+  }
+
+  #project {
+    position: fixed;
+    inset: 0;
+    z-index: 15;
+    pointer-events: none;
+    display: none;
+  }
+  #project.active { display: block; }
+
+  #project-text {
+    position: fixed;
+    color: var(--body-text, #404040);
+  }
+
+  #p-title {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-family: 'Tenor Sans', serif;
+    font-weight: 400;
+    font-size: clamp(2.2rem, 3.6vw, 3.4rem);
+    letter-spacing: normal;
+    line-height: 1.05;
+    color: #1E1B18;
+  }
+
+  #p-body {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+
+  #p-eyebrow {
+    font-family: 'Tenor Sans', serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #1E1B18;
+  }
+
+  #p-body p {
+    font-family: 'Tenor Sans', serif;
+    font-size: 0.9rem;
+    letter-spacing: normal;
+    line-height: 1.6;
+    color: #404040;
+    max-width: 440px;
+  }
+  #p-1 { margin-top: 2.25rem; }
+  #p-2 { margin-top: 1rem; }
+  #p-3 { margin-top: 1rem; }
+
+  /* links inside the project copy */
+  #p-body p a {
+    color: #1E1B18;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: #bbb;
+    transition: text-decoration-color 0.2s ease;
+    word-break: break-word;
+  }
+  #p-body p a:hover { text-decoration-color: #1E1B18; }
+  #p-body p h3 { font-size: 1rem; font-weight: 400; margin: 0.25rem 0; color: #1E1B18; }
+
+  /* thumbnail strip of the series' detail photos */
+  #p-images {
+    display: flex;
+    gap: 10px;
+    margin-top: 1.9rem;
+    flex-wrap: wrap;
+  }
+  #p-images img {
+    width: auto;
+    height: 78px;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+    box-shadow: 0 6px 18px rgba(42, 37, 32, 0.14);
+  }
+
+  /* fade-in + slide-up reveal (per-element delay set in JS) */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .reveal.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ====================================================================
+     Info overlay ("over haar")
+     ==================================================================== */
+  #info {
+    position: fixed;
+    inset: 0;
+    z-index: 18;
+    background: var(--bg);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  #info.show { opacity: 1; pointer-events: auto; }
+
+  .info-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    gap: 64px;
+    align-items: stretch;
+    padding: 116px var(--nav-pad) 56px;
+  }
+  .info-portrait {
+    flex: 0 0 36%;
+    max-width: 420px;
+    overflow: hidden;
+  }
+  .info-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .info-copy {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 6px 0 2px;
+    max-width: 640px;
+  }
+  .info-para {
+    font-family: 'Tenor Sans', serif;
+    color: #404040;
+    font-size: 1rem;
+    line-height: 1.7;
+    margin-bottom: 1.2rem;
+    max-width: 52ch;
+  }
+  .info-quote {
+    font-family: 'Tenor Sans', serif;
+    color: #1E1B18;
+    font-size: 1.6rem;
+    line-height: 1.3;
+    margin: 0.5rem 0 1.5rem;
+  }
+  .info-links {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .info-links a {
+    font-family: 'Tenor Sans', serif;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-size: 0.72rem;
+    color: #1E1B18;
+    text-decoration: none;
+    border-bottom: 1px solid #c9c2b8;
+    padding-bottom: 4px;
+    transition: border-color 0.25s ease, opacity 0.25s ease;
+  }
+  .info-links a:hover { opacity: 0.6; }
+
+  /* subtle staggered entrance for the info contents */
+  #info .info-portrait,
+  #info .info-para,
+  #info .info-quote,
+  #info .info-links {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  #info.show .info-portrait { opacity: 1; transform: none; transition-delay: 0.10s; }
+  #info.show .info-para:nth-child(1) { opacity: 1; transform: none; transition-delay: 0.25s; }
+  #info.show .info-para:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.38s; }
+  #info.show .info-quote { opacity: 1; transform: none; transition-delay: 0.52s; }
+  #info.show .info-links { opacity: 1; transform: none; transition-delay: 0.64s; }
+
+  /* ====================================================================
+     Mobile (< 768px)
+     ==================================================================== */
+  @media (max-width: 767px) {
+    :root { --nav-pad: 20px; }
+
+    nav {
+      z-index: 110;
+      background: var(--bg);
+    }
+    .nav-inner { padding: 18px var(--nav-pad) 15px; }
+    .nav-desktop { display: none !important; }
+
+    .nav-brand-mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .nav-brand-mobile-name {
+      font-family: 'Tenor Sans', serif;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      color: #404040;
+      font-size: 1.05rem;
+      padding-left: 0.22em;
+    }
+    .nav-brand-mobile-sub {
+      font-family: 'Tenor Sans', serif;
+      text-transform: uppercase;
+      letter-spacing: 0.3em;
+      color: #8a8378;
+      font-size: 0.52rem;
+      padding-left: 0.3em;
+    }
+
+    #hamburger {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      width: 30px;
+      height: 22px;
+      padding: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    #hamburger span {
+      display: block;
+      width: 28px;
+      height: 1.5px;
+      background: #404040;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    #hamburger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+    #hamburger.open span:nth-child(2) { opacity: 0; }
+    #hamburger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+    #mobile-menu {
+      display: flex;
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: #F5F1EC;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2.75rem;
+      opacity: 0;
+      transform: translateX(100%);
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    #mobile-menu.open { opacity: 1; transform: translateX(0); pointer-events: auto; }
+    .m-link {
+      font-family: 'Tenor Sans', serif;
+      text-transform: uppercase;
+      letter-spacing: 0.25em;
+      color: #404040;
+      font-size: 1.7rem;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    #project {
+      position: fixed;
+      inset: 0;
+      z-index: 15;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      pointer-events: auto;
+      background: var(--bg);
+      padding: 0 var(--nav-pad);
+    }
+
+    #project-img.m-inflow {
+      position: static;
+      display: block;
+      width: 100%;
+      height: 55vh;
+      margin: 0;
+      box-shadow: none;
+    }
+
+    #project-text {
+      position: static;
+      left: auto; top: auto;
+      width: auto;
+      height: auto;
+      padding-bottom: 3rem;
+    }
+    #p-title {
+      position: static;
+      font-size: clamp(2rem, 7vw, 2.5rem);
+      margin-top: 2rem;
+    }
+    #p-body {
+      position: static;
+      bottom: auto;
+      margin-top: 2.75rem;
+    }
+    #p-eyebrow { font-size: 0.75rem; }
+    #p-body p {
+      max-width: none;
+      font-size: 0.88rem;
+    }
+    #p-1 { margin-top: 1rem; }
+    #p-2 { margin-top: 1rem; }
+    #p-3 { margin-top: 1rem; }
+    #p-images img { height: 92px; }
+
+    /* Info overlay: stack, scrollable */
+    #info { overflow-y: auto; }
+    .info-inner {
+      flex-direction: column;
+      gap: 24px;
+      padding: 96px var(--nav-pad) 48px;
+      min-height: 100%;
+      align-items: stretch;
+    }
+    .info-portrait {
+      flex: none;
+      width: 100%;
+      max-width: none;
+      height: 42vh;
+    }
+    .info-copy { max-width: none; }
+    .info-quote { font-size: 1.25rem; }
+    .info-para { font-size: 0.95rem; }
+  }
+</style>
+</head>
+<body>
+  <div id="bg-fade"></div>
+
+  <nav id="nav">
+    <div class="nav-inner">
+      <div class="nav-group nav-desktop">
+        <a class="nav-link" data-nav="index">Home</a>
+      </div>
+      <div class="nav-brand nav-desktop">
+        <span class="nav-brand-name">Pauline Zeij</span>
+        <span class="nav-brand-sub">Contemporary Art</span>
+      </div>
+      <div class="nav-group nav-desktop">
+        <a class="nav-link" data-nav="info">Info</a>
+        <a class="nav-link" data-nav="contact" href="mailto:info@paulinezeij.nl">Contact</a>
+      </div>
+
+      <!-- Mobile: brand left, hamburger right -->
+      <a class="nav-brand-mobile">
+        <span class="nav-brand-mobile-name">Pauline Zeij</span>
+        <span class="nav-brand-mobile-sub">Contemporary Art</span>
+      </a>
+      <button id="hamburger" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav-divider"></div>
+  </nav>
+
+  <!-- Full-screen mobile menu -->
+  <div id="mobile-menu">
+    <a class="m-link" data-nav="index">Home</a>
+    <a class="m-link" data-nav="info">Info</a>
+    <a class="m-link" data-nav="contact" href="mailto:info@paulinezeij.nl">Contact</a>
+  </div>
+
+  <canvas id="scene"></canvas>
+
+  <!-- Project detail page (revealed after a card is clicked) -->
+  <div id="project">
+    <img id="project-img" alt="" />
+    <div id="project-text">
+      <h1 id="p-title" class="reveal"></h1>
+      <div id="p-body">
+        <div id="p-eyebrow" class="reveal"></div>
+        <p id="p-1" class="reveal"></p>
+        <p id="p-2" class="reveal"></p>
+        <p id="p-3" class="reveal"></p>
+        <div id="p-images" class="reveal"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info overlay ("over haar") -->
+  <div id="info">
+    <div class="info-inner">
+      <div class="info-portrait"><img id="info-img" alt="Pauline Zeij" /></div>
+      <div class="info-copy">
+        <div>
+          <p id="info-p1" class="info-para"></p>
+          <p id="info-p2" class="info-para"></p>
+        </div>
+        <div>
+          <p id="info-quote" class="info-quote"></p>
+          <div class="info-links">
+            <a href="https://www.instagram.com/pauline_zeij_contemporary_art" target="_blank" rel="noopener">Instagram</a>
+            <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       Data layer (Supabase, reused from the live Pauline Zeij site)
+       ==================================================================== -->
+  <script>
+  const USE_SUPABASE = typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL !== 'JOUW_SUPABASE_URL';
+  const db = USE_SUPABASE ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
+
+  // Static fallback data (used only if Supabase is unreachable)
+  const STATIC_PROJECTS = [
+    { id:'1', order_num:0, title:'Paarden', tag:'Equine Art', cover_url:'images/01.jpg',
+      copy_p1:'Pauline schildert paarden zoals ze zijn — krachtig, gracieus en vol karakter. Elk schilderij vangt een moment van aanwezigheid, een blik die de toeschouwer raakt en niet loslaat.',
+      copy_p2:'De werken zijn geschilderd in olieverf op groot formaat doek. Licht en kleur zijn de sleutelwoorden: diep donker als achtergrond, warme tinten die het paard doen oplichten.',
+      copy_p3:'Een persoonlijk paardenportret laten maken? Pauline werkt graag in opdracht. Neem contact op via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a> of <a href="tel:+31612854167">+31 6 12 85 41 67</a>.',
+      project_images:[{order_num:0,url:'images/Project-01/01.jpg'},{order_num:1,url:'images/Project-01/02.jpg'},{order_num:2,url:'images/Project-01/03.jpg'},{order_num:3,url:'images/Project-01/04.jpg'}]},
+    { id:'2', order_num:1, title:'Magie', tag:'Fine Art', cover_url:'images/02.jpg',
+      copy_p1:'In haar magische werken ontmoeten mensen en dieren elkaar in een wereld die tegelijk vertrouwd en dromerig aanvoelt. Realisme en fantasie vloeien moeiteloos samen op het doek.',
+      copy_p2:'Gemengde techniek op doek — olieverf in combinatie met andere materialen. De heldere kleurvlakken en de precieze details maken haar herkenbare signatuur.',
+      copy_p3:'Interesse in een van haar magische werken? Neem contact op voor beschikbaarheid en prijzen: <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a>.',
+      project_images:[{order_num:0,url:'images/Project-02/01.jpg'},{order_num:1,url:'images/Project-02/02.jpg'},{order_num:2,url:'images/Project-02/03.jpg'},{order_num:3,url:'images/Project-02/04.jpg'}]},
+    { id:'3', order_num:2, title:'Kunstenaar', tag:'Portret', cover_url:'images/03.jpg',
+      copy_p1:'Pauline Zeij — de kunstenaar achter het werk. Haar passie voor licht, kleur en het samenspel tussen mens en dier is zichtbaar in elk schilderij dat ze maakt.',
+      copy_p2:'Gevestigd in de omgeving van Uithoorn, werkt Pauline vanuit een eigen atelier waar elk doek begint als een dialoog tussen haar en het onderwerp.',
+      copy_p3:'Meer weten over Pauline? Volg haar op Instagram @pauline_zeij_contemporary_art of neem direct contact op via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a>.',
+      project_images:[{order_num:0,url:'images/Project-03/01.jpg'},{order_num:1,url:'images/Project-03/02.jpg'},{order_num:2,url:'images/Project-03/03.jpg'},{order_num:3,url:'images/Project-03/04.jpg'}]},
+    { id:'4', order_num:3, title:'Atelier', tag:'Studie', cover_url:'images/04.jpg',
+      copy_p1:'Detailopnames vanuit het atelier — close-ups van schilderijen in wording, verflagen en penseelstreken die de intimiteit van het maakproces tonen.',
+      copy_p2:'Olieverf op doek, vastgelegd in het atelier. Elke close-up onthult de textuur en gelaagdheid die van dichtbij pas volledig zichtbaar wordt.',
+      copy_p3:'Wil je het maakproces volgen? Pauline deelt regelmatig behind-the-scenes op Instagram @pauline_zeij_contemporary_art.',
+      project_images:[{order_num:0,url:'images/Project-04/01.jpg'},{order_num:1,url:'images/Project-04/02.jpg'},{order_num:2,url:'images/Project-04/03.jpg'},{order_num:3,url:'images/Project-04/04.jpg'}]},
+    { id:'5', order_num:4, title:'Galerie', tag:'Collectie', cover_url:'images/05.jpg',
+      copy_p1:'Werken in hun uiteindelijke context — ingelijst, opgehangen, thuis. Zo laat Pauline zien hoe haar schilderijen tot leven komen in een woon- of galerie-omgeving.',
+      copy_p2:'Verschillende technieken en formaten, van klein formaat aquarel tot groot formaat olieverf. Vertegenwoordigd door de Paard Verzameld Gallery.',
+      copy_p3:'Interesse in een werk voor uw collectie? Neem contact op met Pauline via <a href="mailto:info@paulinezeij.nl">info@paulinezeij.nl</a> of bezoek de Paard Verzameld Gallery.',
+      project_images:[{order_num:0,url:'images/Project-05/01.jpg'},{order_num:1,url:'images/Project-05/02.jpg'},{order_num:2,url:'images/Project-05/03.jpg'},{order_num:3,url:'images/Project-05/04.jpg'}]},
+    { id:'6', order_num:5, title:'Joek de serie', tag:'Boeken', cover_url:'images/01.jpg',
+      copy_p1:'Konijntje Joek wil graag stoer, hip en cool zijn. Daarom wil hij oorbellen. In de winkel kiest hij de allerglimmendste en allergrootste van allemaal — maar o wat zijn die oorbellen zwaar!',
+      copy_p2:'',
+      copy_p3:'<h3>Te koop bij:</h3><a href="https://www.sauberhaus.nl/boeken/het-boek-van-joek" target="_blank" rel="noopener">Het boek van Joek</a> · <a href="https://www.sauberhaus.nl/boeken/joeks-cosy-wereld" target="_blank" rel="noopener">Joeks cosy wereld</a>',
+      project_images:[{order_num:0,url:'images/Project-01/01.jpg'},{order_num:1,url:'images/Project-01/02.jpg'},{order_num:2,url:'images/Project-01/03.jpg'},{order_num:3,url:'images/Project-01/04.jpg'}]},
+  ];
+
+  async function fetchProjects() {
+    if (!USE_SUPABASE) return STATIC_PROJECTS;
+    try {
+      const fetchPromise = db.from('paulinezeij_projects')
+        .select('*, paulinezeij_project_images(id, order_num, url)')
+        .order('order_num', { ascending: true });
+      const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
+      const { data } = await Promise.race([fetchPromise, timeoutPromise]);
+      (data || []).forEach(p => {
+        p.project_images = p.paulinezeij_project_images || [];
+        p.project_images.sort((a, b) => a.order_num - b.order_num);
+        delete p.paulinezeij_project_images;
+      });
+      return data && data.length ? data : STATIC_PROJECTS;
+    } catch {
+      return STATIC_PROJECTS;
+    }
+  }
+
+  async function fetchSettings() {
+    const defaults = {
+      bio_p1: 'Pauline Zeij is een contemporaine kunstenaar gevestigd in de omgeving van Uithoorn. Ze schildert trefzekere portretten van zowel mensen als dieren, en beeldt een geheel eigen magische wereld uit waar mens en dier elkaar regelmatig ontmoeten. Haar werk bevindt zich in particuliere collecties en wordt vertegenwoordigd door de Paard Verzameld Gallery.',
+      bio_p2: 'Haar beeldtaal is zacht en aaibaar, maar ook rauw en reëel — een combinatie die moeiteloos samengaat op het doek. Het gebruik van licht en kleur is voor Pauline van groot belang: het zijn de middelen waarmee ze zowel haar realiteit als haar magie vangt.',
+      quote: 'Licht en kleur zijn voor mij het begin van elk verhaal.',
+      profile_url: 'images/Profile.jpg',
+    };
+    if (!USE_SUPABASE) return defaults;
+    try {
+      const { data } = await db.from('paulinezeij_settings').select('key, value');
+      if (!data || !data.length) return defaults;
+      const map = Object.fromEntries(data.map(r => [r.key, r.value]));
+      return { ...defaults, ...map };
+    } catch {
+      return defaults;
+    }
+  }
+
+  // Same-origin helper: the site's own /images/* assets are served alongside this
+  // page, so strip any absolute origin to keep WebGL textures CORS-clean. Remote
+  // assets (Supabase Storage) send CORS headers and pass through untouched.
+  function localize(url) {
+    if (!url) return url;
+    const i = url.indexOf('/images/');
+    return i !== -1 ? url.slice(i + 1) : url;
+  }
+
+  function nl2br(s) { return (s || '').replace(/\n/g, '<br>'); }
+  </script>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+  import * as THREE from 'three';
+
+  // ----------------------------------------------------------------------
+  // Data-driven config (populated by boot() before the orbit is built)
+  // ----------------------------------------------------------------------
+  let projects = [];
+  let settings = {};
+  let IMAGES = [];
+  let PROJECT_NAMES = [];
+  let baseDirs = [];
+
+  const CARD_W = 180;          // px (base scale)
+  const CARD_H = 240;          // px
+  const CARD_ASPECT = CARD_W / CARD_H;
+  const IMG_ASPECT = CARD_ASPECT;    // detail image stays a 3:4 portrait panel (matches the cards)
+  const SPHERE_RADIUS_FRAC = 0.40;
+  const SPHERE_Y_FACTOR = 0.60;
+
+  // Responsive breakpoints / mobile tuning
+  const MOBILE_BREAK = 768;
+  const TABLET_BREAK = 1024;
+  const MOBILE_ROLL = THREE.MathUtils.degToRad(80);
+  const MOBILE_CARD_SCALE = 140 / 180;
+  const MOBILE_RADIUS_FRAC_X = 0.78;
+  const MOBILE_RADIUS_FRAC_Y = 0.42;
+  const DEPTH_SCALE_MIN = 0.42;
+  const DEPTH_SCALE_MAX = 1.0;
+  const DEPTH_OPACITY_MIN = 0.30;
+  const DEPTH_OPACITY_MAX = 1.0;
+  const NAV_SAFE_GAP = 16;
+  const REVOLUTION_SECONDS = 50;
+  const IDLE_YAW_SPEED = (Math.PI * 2) / REVOLUTION_SECONDS;
+  const BOB_AMPLITUDE = 6;
+  const BOB_PERIOD = 4;
+  const MAX_TILT = THREE.MathUtils.degToRad(25);
+  const HOVER_SCALE = 1.15;
+  const HOVER_FORWARD = 40;
+  const FOV = 40;
+
+  // Entrance timing
+  const STAGGER = 0.12;
+  const CARD_ENTER_DUR = 0.6;
+  const NAV_DELAY = 0.45;
+
+  // Center logo
+  const LOGO_TEXT = 'PAULINE ZEIJ';
+  const LOGO_CW = 2600, LOGO_CH = 440;
+  const LOGO_ASPECT = LOGO_CW / LOGO_CH;
+
+  // ----------------------------------------------------------------------
+  // Scene setup
+  // ----------------------------------------------------------------------
+  const canvas = document.getElementById('scene');
+  const navEl = document.getElementById('nav');
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas, antialias: true, alpha: true
+  });
+  renderer.setClearColor(0x000000, 0);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(FOV, 1, 1, 20000);
+
+  let cameraDist = 1000;
+  let radiusX = 340;
+  let radiusY = 200;
+  let radiusZ = 340;
+  let centerY = 0;
+  let viewportMin = 800;
+
+  let isMobile = false;
+  let cardScale = 1;
+  let rollCos = 1, rollSin = 0;
+
+  function layout() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    cameraDist = (h / 2) / Math.tan(THREE.MathUtils.degToRad(FOV) / 2);
+    camera.position.set(0, 0, cameraDist);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+    viewportMin = Math.min(w, h);
+
+    const navH = (navEl && navEl.offsetHeight) ? navEl.offsetHeight : 72;
+    centerY = -navH / 2;
+
+    isMobile = w < MOBILE_BREAK;
+    cardScale = isMobile ? MOBILE_CARD_SCALE : 1;
+    const roll = isMobile ? MOBILE_ROLL : 0;
+    rollCos = Math.cos(roll);
+    rollSin = Math.sin(roll);
+
+    camera.updateMatrixWorld();
+
+    if (isMobile) {
+      radiusX = w * MOBILE_RADIUS_FRAC_X;
+      radiusY = w * MOBILE_RADIUS_FRAC_Y;
+      radiusZ = (radiusX + radiusY) / 2;
+    } else {
+      radiusX = viewportMin * SPHERE_RADIUS_FRAC;
+      radiusZ = radiusX;
+      const topBound = navH + NAV_SAFE_GAP;
+      const botBound = h - NAV_SAFE_GAP;
+      const yFactor = (w < TABLET_BREAK) ? 0.85 : SPHERE_Y_FACTOR;
+      let r = radiusX * yFactor;
+      for (let iter = 0; iter < 40; iter++) {
+        const [minPx, maxPx] = verticalExtent(r);
+        if (minPx >= topBound && maxPx <= botBound) break;
+        r *= 0.95;
+        if (r < 50) break;
+      }
+      radiusY = r;
+    }
+  }
+
+  const _v = new THREE.Vector3();
+  const _dir = new THREE.Vector3();
+  const _m = new THREE.Matrix4();
+  function verticalExtent(rY) {
+    const H = window.innerHeight;
+    let minPx = Infinity, maxPx = -Infinity;
+    for (let s = 0; s < 360; s += 6) {
+      _m.makeRotationY(THREE.MathUtils.degToRad(s));
+      for (let i = 0; i < baseDirs.length; i++) {
+        _dir.copy(baseDirs[i]).applyMatrix4(_m);
+        const depthScale = DEPTH_SCALE_MIN + (DEPTH_SCALE_MAX - DEPTH_SCALE_MIN) * ((_dir.z + 1) / 2);
+        const px = _dir.x * radiusX, py = _dir.y * rY + centerY, pz = _dir.z * radiusZ;
+        const hw = (CARD_W / 2) * depthScale;
+        const hh = (CARD_H / 2) * depthScale + BOB_AMPLITUDE;
+        for (const oy of [-hh, hh]) {
+          _v.set(px + hw, py + oy, pz).project(camera);
+          const sy = (-_v.y * 0.5 + 0.5) * H;
+          if (sy < minPx) minPx = sy;
+          if (sy > maxPx) maxPx = sy;
+        }
+      }
+    }
+    return [minPx, maxPx];
+  }
+
+  // ----------------------------------------------------------------------
+  // Fibonacci sphere distribution
+  // ----------------------------------------------------------------------
+  function fibonacciSphere(n) {
+    const pts = [];
+    if (n === 1) { pts.push(new THREE.Vector3(0, 0, 1)); return pts; }
+    const golden = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < n; i++) {
+      const y = 1 - (i / (n - 1)) * 2;
+      const r = Math.sqrt(1 - y * y);
+      const theta = golden * i;
+      pts.push(new THREE.Vector3(Math.cos(theta) * r, y, Math.sin(theta) * r));
+    }
+    return pts;
+  }
+
+  // ----------------------------------------------------------------------
+  // Shadow texture (soft radial gradient) shared by all cards
+  // ----------------------------------------------------------------------
+  function makeShadowTexture() {
+    const s = 256;
+    const c = document.createElement('canvas');
+    c.width = c.height = s;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(s/2, s/2, 0, s/2, s/2, s/2);
+    g.addColorStop(0, 'rgba(42,37,32,0.55)');
+    g.addColorStop(0.5, 'rgba(42,37,32,0.22)');
+    g.addColorStop(1, 'rgba(42,37,32,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, s, s);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+  const shadowTex = makeShadowTexture();
+
+  // ----------------------------------------------------------------------
+  // Cover-fit a texture onto the 3:4 card
+  // ----------------------------------------------------------------------
+  function coverTexture(tex) {
+    const img = tex.image;
+    if (!img || !img.width) return;
+    const imgAspect = img.width / img.height;
+    tex.center.set(0.5, 0.5);
+    tex.repeat.set(1, 1);
+    tex.offset.set(0, 0);
+    if (imgAspect > CARD_ASPECT) {
+      tex.repeat.x = CARD_ASPECT / imgAspect;
+    } else {
+      tex.repeat.y = imgAspect / CARD_ASPECT;
+    }
+  }
+
+  // ----------------------------------------------------------------------
+  // Build cards (called by boot() once IMAGES is known)
+  // ----------------------------------------------------------------------
+  const loader = new THREE.TextureLoader();
+  loader.setCrossOrigin('anonymous');
+  const cardGeo = new THREE.PlaneGeometry(CARD_W, CARD_H);
+  const shadowGeo = new THREE.PlaneGeometry(CARD_W * 1.35, CARD_H * 1.2);
+
+  const cards = [];
+
+  function buildCards() {
+    baseDirs.forEach((dir, i) => {
+      const group = new THREE.Group();
+
+      const shadowMat = new THREE.MeshBasicMaterial({
+        map: shadowTex, transparent: true, opacity: 0, depthWrite: false
+      });
+      const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+      shadow.position.set(0, -10, -2);
+      shadow.renderOrder = 0;
+      group.add(shadow);
+
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xffffff, transparent: true, opacity: 0, depthWrite: false
+      });
+      const mesh = new THREE.Mesh(cardGeo, mat);
+      mesh.renderOrder = 1;
+      group.add(mesh);
+
+      scene.add(group);
+
+      loader.load(IMAGES[i], (t) => {
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        coverTexture(t);
+        mat.map = t;
+        mat.needsUpdate = true;
+      });
+
+      cards.push({
+        group, mesh, mat, shadow, shadowMat,
+        dir: dir.clone(),
+        phase: Math.random() * Math.PI * 2,
+        enterStart: i * STAGGER,
+        hover: 0,
+        holdDir: dir.clone(),
+        holding: false
+      });
+    });
+  }
+
+  // ----------------------------------------------------------------------
+  // Center logo (canvas texture plane at sphere center)
+  // ----------------------------------------------------------------------
+  let logoMesh, logoMat;
+  function logoWidth() {
+    return isMobile ? Math.min(window.innerWidth * 0.74, 360) : viewportMin * 0.62;
+  }
+  function buildLogo() {
+    const c = document.createElement('canvas');
+    c.width = LOGO_CW; c.height = LOGO_CH;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, LOGO_CW, LOGO_CH);
+    ctx.fillStyle = '#1E1B18';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (ctx.letterSpacing !== undefined) ctx.letterSpacing = '26px';
+    ctx.font = '200px "Tenor Sans", serif';
+    ctx.fillText(LOGO_TEXT, LOGO_CW / 2 + 13, LOGO_CH / 2 + 8);
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    logoMat = new THREE.MeshBasicMaterial({
+      map: tex, transparent: true, opacity: 0, depthWrite: false
+    });
+    const logoW = logoWidth();
+    logoMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(logoW, logoW / LOGO_ASPECT),
+      logoMat
+    );
+    logoMesh.position.set(0, centerY, 0);
+    scene.add(logoMesh);
+  }
+  function buildLogoWhenReady() {
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.load('200px "Tenor Sans"').then(() => {
+        document.fonts.ready.then(buildLogo);
+      });
+    } else {
+      buildLogo();
+    }
+  }
+
+  // ----------------------------------------------------------------------
+  // Interaction state
+  // ----------------------------------------------------------------------
+  let yaw = 0;
+  let pitch = 0;
+  let yawVel = 0;
+  let dragging = false;
+  let lastX = 0, lastY = 0;
+  let lastMoveTime = 0;
+  let pointerDownTime = 0;
+  let downX = 0, downY = 0, moved = false;
+
+  const raycaster = new THREE.Raycaster();
+  const pointerNDC = new THREE.Vector2();
+  let pointerInside = false;
+
+  // ----------------------------------------------------------------------
+  // Project page state
+  // ----------------------------------------------------------------------
+  let mode = 'hero';
+  let activeCard = -1;
+  let bobTime = 0;
+  let sceneFade = 1;
+  let fade = null;
+
+  const projectEl = document.getElementById('project');
+  const projectImg = document.getElementById('project-img');
+  const projectText = document.getElementById('project-text');
+  const pTitle = document.getElementById('p-title');
+  const pEyebrow = document.getElementById('p-eyebrow');
+  const p1El = document.getElementById('p-1');
+  const p2El = document.getElementById('p-2');
+  const p3El = document.getElementById('p-3');
+  const pImagesEl = document.getElementById('p-images');
+  const revealEls = ['p-title', 'p-eyebrow', 'p-1', 'p-2', 'p-3', 'p-images'].map(id => document.getElementById(id));
+  const hamburgerEl = document.getElementById('hamburger');
+  const mobileMenuEl = document.getElementById('mobile-menu');
+
+  // Info overlay
+  const infoEl = document.getElementById('info');
+  let infoOpen = false;
+  function populateInfo() {
+    document.getElementById('info-img').src = localize(settings.profile_url || 'images/Profile.jpg');
+    document.getElementById('info-p1').textContent = settings.bio_p1 || '';
+    document.getElementById('info-p2').textContent = settings.bio_p2 || '';
+    const q = settings.quote ? settings.quote.trim() : '';
+    document.getElementById('info-quote').textContent = q ? '“' + q + '”' : '';
+  }
+  function openInfo() { if (mode === 'project') returnToHero(); infoEl.classList.add('show'); infoOpen = true; }
+  function closeInfo() { infoEl.classList.remove('show'); infoOpen = false; }
+
+  function startFade(to, durSec) {
+    fade = { t0: performance.now(), durMs: durSec * 1000, from: sceneFade, to };
+  }
+
+  function onPointerDown(e) {
+    if (mode !== 'hero') return;
+    dragging = true;
+    canvas.classList.add('dragging');
+    lastX = e.clientX; lastY = e.clientY;
+    downX = e.clientX; downY = e.clientY; moved = false;
+    pointerNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointerNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    lastMoveTime = performance.now();
+    pointerDownTime = performance.now();
+    yawVel = 0;
+    canvas.setPointerCapture?.(e.pointerId);
+  }
+
+  function onPointerMove(e) {
+    pointerNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointerNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    pointerInside = true;
+
+    if (!dragging) return;
+    if (Math.hypot(e.clientX - downX, e.clientY - downY) > 6) moved = true;
+    const now = performance.now();
+    const dt = Math.max((now - lastMoveTime) / 1000, 1e-4);
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+
+    const yawDelta = dx * 0.006;
+    yaw += yawDelta;
+    pitch = THREE.MathUtils.clamp(pitch + dy * 0.006, -MAX_TILT, MAX_TILT);
+
+    yawVel = yawDelta / dt;
+    lastX = e.clientX; lastY = e.clientY;
+    lastMoveTime = now;
+  }
+
+  function onPointerUp(e) {
+    if (!dragging) return;
+    dragging = false;
+    canvas.classList.remove('dragging');
+    canvas.releasePointerCapture?.(e.pointerId);
+
+    if (!moved && mode === 'hero') {
+      raycaster.setFromCamera(pointerNDC, camera);
+      let best = -1, bestDist = Infinity;
+      for (let i = 0; i < cards.length; i++) {
+        if (!cards[i].mesh.visible) continue;
+        const hit = raycaster.intersectObject(cards[i].mesh, false);
+        if (hit.length && hit[0].distance < bestDist) { bestDist = hit[0].distance; best = i; }
+      }
+      if (best >= 0) { enterProject(best); return; }
+    }
+    yawVel = THREE.MathUtils.clamp(yawVel, -6, 6);
+  }
+
+  canvas.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  canvas.addEventListener('pointerleave', () => { pointerInside = false; });
+
+  window.addEventListener('resize', () => {
+    layout();
+    if (logoMesh) {
+      const logoW = logoWidth();
+      logoMesh.geometry.dispose();
+      logoMesh.geometry = new THREE.PlaneGeometry(logoW, logoW / LOGO_ASPECT);
+      logoMesh.position.set(0, centerY, 0);
+    }
+  });
+
+  // ----------------------------------------------------------------------
+  // Animation loop
+  // ----------------------------------------------------------------------
+  const tmp = new THREE.Vector3();
+  const rotM = new THREE.Matrix4();
+  const qx = new THREE.Quaternion();
+  const qy = new THREE.Quaternion();
+  const xAxis = new THREE.Vector3(1, 0, 0);
+  const yAxis = new THREE.Vector3(0, 1, 0);
+  const toCam = new THREE.Vector3();
+
+  const clock = new THREE.Clock();
+  let elapsed = 0;
+  let navShown = false;
+  let hoveredIndex = -1;
+
+  function buildRotationMatrix() {
+    qx.setFromAxisAngle(xAxis, pitch);
+    qy.setFromAxisAngle(yAxis, yaw);
+    qy.multiply(qx);
+    rotM.makeRotationFromQuaternion(qy);
+  }
+
+  function updateHover() {
+    if (dragging || !pointerInside) { hoveredIndex = -1; return; }
+    raycaster.setFromCamera(pointerNDC, camera);
+    let best = -1, bestDist = Infinity;
+    for (let i = 0; i < cards.length; i++) {
+      const hit = raycaster.intersectObject(cards[i].mesh, false);
+      if (hit.length && hit[0].distance < bestDist) {
+        bestDist = hit[0].distance;
+        best = i;
+      }
+    }
+    hoveredIndex = best;
+  }
+
+  function step(dt) {
+    elapsed += dt;
+    const heroMode = (mode === 'hero');
+    if (heroMode) bobTime += dt;
+
+    if (fade) {
+      const k = Math.min(1, (performance.now() - fade.t0) / fade.durMs);
+      sceneFade = fade.from + (fade.to - fade.from) * k;
+      if (k >= 1) fade = null;
+    }
+
+    if (heroMode && !dragging) {
+      yaw += (IDLE_YAW_SPEED + yawVel) * dt;
+      yawVel *= Math.exp(-dt / 0.7);
+      if (Math.abs(yawVel) < 1e-4) yawVel = 0;
+      pitch += (0 - pitch) * (1 - Math.exp(-dt / 1.1));
+    }
+
+    buildRotationMatrix();
+    if (heroMode) updateHover();
+
+    for (let i = 0; i < cards.length; i++) {
+      const c = cards[i];
+
+      const eIn = THREE.MathUtils.clamp(
+        (elapsed - c.enterStart) / CARD_ENTER_DUR, 0, 1
+      );
+      const ease = eIn < 1 ? (1 - Math.pow(1 - eIn, 3)) : 1;
+      const enterOpacity = ease;
+      const enterScale = 0.7 + 0.3 * ease;
+
+      if (heroMode) {
+        const isHover = (i === hoveredIndex);
+        if (isHover && !c.holding) {
+          c.holdDir.copy(c.dir).applyMatrix4(rotM);
+          c.holding = true;
+        } else if (!isHover) {
+          c.holding = false;
+        }
+        const hoverTarget = isHover ? 1 : 0;
+        const hoverRate = isHover ? (dt / 0.4) : (dt / 0.6);
+        c.hover += (hoverTarget - c.hover) * Math.min(1, hoverRate * 2.2);
+        c.hover = THREE.MathUtils.clamp(c.hover, 0, 1);
+      }
+      const hEase = c.hover * c.hover * (3 - 2 * c.hover);
+
+      tmp.copy(c.dir).applyMatrix4(rotM);
+      if (c.hover > 0.001) {
+        tmp.lerp(c.holdDir, hEase).normalize();
+      }
+
+      let px = tmp.x * radiusX;
+      let py = tmp.y * radiusY + centerY;
+      let pz = tmp.z * radiusZ;
+
+      const depthT = (tmp.z + 1) / 2;
+      const depthScale = DEPTH_SCALE_MIN + (DEPTH_SCALE_MAX - DEPTH_SCALE_MIN) * depthT;
+      const depthOpacity = DEPTH_OPACITY_MIN + (DEPTH_OPACITY_MAX - DEPTH_OPACITY_MIN) * depthT;
+
+      py += BOB_AMPLITUDE * Math.sin(bobTime * (Math.PI * 2 / BOB_PERIOD) + c.phase);
+
+      if (isMobile) {
+        const rx = px, ry = py - centerY;
+        px = rx * rollCos - ry * rollSin;
+        py = centerY + rx * rollSin + ry * rollCos;
+      }
+
+      if (c.hover > 0.001) {
+        toCam.set(camera.position.x - px, camera.position.y - py, camera.position.z - pz).normalize();
+        const fwd = HOVER_FORWARD * hEase;
+        px += toCam.x * fwd; py += toCam.y * fwd; pz += toCam.z * fwd;
+      }
+
+      c.group.position.set(px, py, pz);
+      c.group.lookAt(camera.position);
+
+      const sc = enterScale * depthScale * (1 + (HOVER_SCALE - 1) * hEase);
+      c.group.scale.setScalar(sc * cardScale);
+
+      const opacity = depthOpacity + (1 - depthOpacity) * hEase;
+      const sf = (i === activeCard) ? 1 : sceneFade;
+      c.mat.opacity = enterOpacity * opacity * sf;
+      c.shadowMat.opacity = enterOpacity * opacity * (0.35 + 0.55 * hEase) * sf;
+      c.shadow.position.y = -10 - 8 * hEase;
+
+      const dist = camera.position.distanceTo(c.group.position);
+      c.mesh.renderOrder = -dist;
+      c.shadow.renderOrder = -dist - 0.5;
+    }
+
+    if (logoMesh) {
+      logoMesh.lookAt(camera.position);
+      logoMesh.renderOrder = -camera.position.distanceTo(logoMesh.position);
+      const logoIn = THREE.MathUtils.clamp((elapsed - NAV_DELAY) / 1.0, 0, 1);
+      logoMat.opacity = logoIn * sceneFade;
+    }
+
+    if (!navShown && elapsed > NAV_DELAY) {
+      navEl.classList.add('visible');
+      navShown = true;
+    }
+  }
+
+  // ----------------------------------------------------------------------
+  // Project page transitions
+  // ----------------------------------------------------------------------
+  const _rc = new THREE.Vector3();
+  function cardScreenRect(group) {
+    camera.updateMatrixWorld();
+    group.updateWorldMatrix(true, false);
+    const W = window.innerWidth, H = window.innerHeight;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const corners = [[-CARD_W/2,-CARD_H/2],[CARD_W/2,-CARD_H/2],[-CARD_W/2,CARD_H/2],[CARD_W/2,CARD_H/2]];
+    for (const [x, y] of corners) {
+      _rc.set(x, y, 0).applyMatrix4(group.matrixWorld).project(camera);
+      const sx = (_rc.x * 0.5 + 0.5) * W, sy = (-_rc.y * 0.5 + 0.5) * H;
+      minX = Math.min(minX, sx); maxX = Math.max(maxX, sx);
+      minY = Math.min(minY, sy); maxY = Math.max(maxY, sy);
+    }
+    return { left: minX, top: minY, width: maxX - minX, height: maxY - minY };
+  }
+
+  function currentImgAspect() {
+    // Keep the detail image a 3:4 portrait panel pinned right (seamless morph from
+    // the 3:4 orbit card). object-fit:cover crops landscape covers to this column,
+    // exactly like the cards — so the tuned layout holds for any photo orientation.
+    return IMG_ASPECT;
+  }
+
+  function computeImageRect() {
+    const links = document.querySelectorAll('.nav-link');
+    const indexEl = links[0], contactEl = links[links.length - 1];
+    const ri = indexEl.getBoundingClientRect();
+    const rc = contactEl.getBoundingClientRect();
+    const padLeft = ri.left;
+    const rightPad = window.innerWidth - rc.right;
+    const navBottom = navEl.getBoundingClientRect().bottom;
+    const top = navBottom + rightPad;
+    const right = window.innerWidth - rightPad;
+    const bottom = window.innerHeight - rightPad;
+    const height = bottom - top;
+    const width = height * currentImgAspect();
+    const left = right - width;
+    return { left, top, width, height, padLeft };
+  }
+
+  function computeMobileImageRect() {
+    const pad = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-pad')) || 20;
+    const navBottom = navEl.getBoundingClientRect().bottom;
+    const top = navBottom + 16;
+    return { left: pad, top, width: window.innerWidth - pad * 2, height: window.innerHeight * 0.55, pad, navBottom };
+  }
+
+  function positionProjectText(fin) {
+    const t = document.getElementById('project-text');
+    t.style.left = fin.padLeft + 'px';
+    t.style.top = fin.top + 'px';
+    t.style.width = Math.max(280, fin.left - fin.padLeft - 48) + 'px';
+    t.style.height = Math.max(200, window.innerHeight - fin.top - 63) + 'px';
+  }
+
+  const EASE = 'cubic-bezier(0.65, 0, 0.35, 1)';
+  function imgMoveTransition(dur) {
+    return `top ${dur}s ${EASE}, left ${dur}s ${EASE}, width ${dur}s ${EASE}, height ${dur}s ${EASE}, opacity 0.6s ease, box-shadow ${dur}s ease`;
+  }
+
+  // Fill the project panel with the clicked series' real data.
+  function fillProjectContent(i) {
+    const p = projects[i] || {};
+    pTitle.textContent = p.title || '';
+    pEyebrow.textContent = p.tag || '';
+    p1El.innerHTML = nl2br(p.copy_p1);
+    p2El.innerHTML = nl2br(p.copy_p2);
+    p3El.innerHTML = nl2br(p.copy_p3);
+    [p1El, p2El, p3El].forEach(el => { el.style.display = el.textContent.trim() ? '' : 'none'; });
+
+    pImagesEl.innerHTML = '';
+    (p.project_images || []).slice(0, 4).forEach(im => {
+      const img = document.createElement('img');
+      img.src = localize(im.url);
+      img.alt = p.title || '';
+      pImagesEl.appendChild(img);
+    });
+    pImagesEl.style.display = pImagesEl.children.length ? '' : 'none';
+  }
+
+  function enterProject(i) {
+    if (mode !== 'hero') return;
+    mode = 'enter';
+    activeCard = i;
+    dragging = false; canvas.classList.remove('dragging');
+    hoveredIndex = -1;
+
+    startFade(0, 0.5);
+    fillProjectContent(i);
+    revealEls.forEach(el => { el.style.transitionDelay = '0s'; el.classList.remove('show'); });
+    projectEl.classList.add('active');
+
+    projectImg.src = IMAGES[i];
+    if (projectImg.decode) projectImg.decode().catch(() => {});
+
+    setTimeout(() => {
+      if (mode !== 'enter') return;
+      const c = cards[i];
+      const rect = cardScreenRect(c.group);
+      c.startRect = rect;
+      const held = c.mat.opacity;
+      c.mesh.visible = false; c.shadow.visible = false;
+
+      projectImg.classList.remove('m-inflow');
+      projectImg.style.position = 'fixed';
+      projectImg.style.transition = 'none';
+      projectImg.style.display = 'block';
+      projectImg.style.left = rect.left + 'px';
+      projectImg.style.top = rect.top + 'px';
+      projectImg.style.width = rect.width + 'px';
+      projectImg.style.height = rect.height + 'px';
+      projectImg.style.opacity = String(held);
+      projectImg.style.boxShadow = '0 12px 40px rgba(42, 37, 32, 0.15)';
+      void projectImg.offsetWidth;
+
+      const fin = isMobile ? computeMobileImageRect() : computeImageRect();
+      if (isMobile) {
+        ['left', 'top', 'width', 'height'].forEach(p => projectText.style[p] = '');
+        projectEl.style.paddingTop = fin.top + 'px';
+        projectEl.scrollTop = 0;
+      } else {
+        positionProjectText(fin);
+      }
+      projectImg.style.transition = imgMoveTransition(1.0);
+      projectImg.style.left = fin.left + 'px';
+      projectImg.style.top = fin.top + 'px';
+      projectImg.style.width = fin.width + 'px';
+      projectImg.style.height = fin.height + 'px';
+      projectImg.style.opacity = '1';
+      projectImg.style.boxShadow = 'none';
+      mode = 'project-anim';
+
+      setTimeout(() => {
+        if (mode !== 'project-anim') return;
+        if (isMobile) {
+          ['position', 'left', 'top', 'width', 'height'].forEach(p => projectImg.style[p] = '');
+          projectImg.classList.add('m-inflow');
+        }
+        const delays = [0, 0.15, 0.30, 0.45, 0.60, 0.74];
+        revealEls.forEach((el, k) => { el.style.transitionDelay = delays[k] + 's'; el.classList.add('show'); });
+        mode = 'project';
+      }, 1000);
+    }, 600);
+  }
+
+  function returnToHero() {
+    if (mode !== 'project') return;
+    mode = 'exit';
+
+    const outDelays = [0.30, 0.24, 0.18, 0.12, 0.06, 0];
+    revealEls.forEach((el, k) => { el.style.transitionDelay = outDelays[k] + 's'; el.classList.remove('show'); });
+
+    setTimeout(() => {
+      if (mode !== 'exit') return;
+      const c = cards[activeCard];
+      const rect = c.startRect || cardScreenRect(c.group);
+
+      if (isMobile) {
+        const r = projectImg.getBoundingClientRect();
+        projectImg.classList.remove('m-inflow');
+        projectImg.style.position = 'fixed';
+        projectImg.style.transition = 'none';
+        projectImg.style.left = r.left + 'px';
+        projectImg.style.top = r.top + 'px';
+        projectImg.style.width = r.width + 'px';
+        projectImg.style.height = r.height + 'px';
+        projectImg.style.boxShadow = '0 12px 40px rgba(42, 37, 32, 0.15)';
+        void projectImg.offsetWidth;
+      }
+
+      projectImg.style.transition = imgMoveTransition(0.8);
+      projectImg.style.left = rect.left + 'px';
+      projectImg.style.top = rect.top + 'px';
+      projectImg.style.width = rect.width + 'px';
+      projectImg.style.height = rect.height + 'px';
+      projectImg.style.boxShadow = '0 12px 40px rgba(42, 37, 32, 0.15)';
+
+      setTimeout(() => {
+        if (mode !== 'exit') return;
+        projectImg.style.display = 'none';
+        ['position', 'left', 'top', 'width', 'height'].forEach(p => projectImg.style[p] = '');
+        projectImg.classList.remove('m-inflow');
+        projectEl.style.paddingTop = '';
+        projectEl.scrollTop = 0;
+        c.mesh.visible = true; c.shadow.visible = true;
+        projectEl.classList.remove('active');
+        activeCard = -1;
+        startFade(1, 0.5);
+        mode = 'hero';
+      }, 800);
+    }, 400);
+  }
+
+  // ---- Nav wiring (Index / Info / Contact) ----
+  document.querySelectorAll('[data-nav="index"]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (infoOpen) closeInfo();
+      if (mode === 'project') returnToHero();
+    });
+  });
+  document.querySelectorAll('[data-nav="info"]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      infoOpen ? closeInfo() : openInfo();
+    });
+  });
+  // Click the warm background of the info overlay (not its contents) to close.
+  infoEl.addEventListener('click', (e) => { if (e.target === infoEl) closeInfo(); });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (infoOpen) { closeInfo(); return; }
+    if (mode === 'project') returnToHero();
+  });
+
+  // ---- Mobile menu ----
+  function openMenu() {
+    mobileMenuEl.classList.add('open');
+    hamburgerEl.classList.add('open');
+    hamburgerEl.setAttribute('aria-label', 'Close menu');
+  }
+  function closeMenu() {
+    mobileMenuEl.classList.remove('open');
+    hamburgerEl.classList.remove('open');
+    hamburgerEl.setAttribute('aria-label', 'Open menu');
+  }
+  hamburgerEl.addEventListener('click', () => {
+    mobileMenuEl.classList.contains('open') ? closeMenu() : openMenu();
+  });
+  document.querySelectorAll('#mobile-menu .m-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      const nav = link.dataset.nav;
+      if (nav === 'contact') { closeMenu(); return; }   // let the mailto navigate
+      e.preventDefault();
+      closeMenu();
+      if (nav === 'index') { if (infoOpen) closeInfo(); if (mode === 'project') returnToHero(); }
+      if (nav === 'info') { infoOpen ? closeInfo() : openInfo(); }
+    });
+  });
+  document.querySelector('.nav-brand-mobile').addEventListener('click', () => {
+    if (infoOpen) { closeInfo(); return; }
+    if (mode === 'project') returnToHero();
+  });
+
+  // Keep the project layout aligned on resize while it is showing.
+  window.addEventListener('resize', () => {
+    if (mode !== 'project') return;
+    if (isMobile) {
+      projectEl.style.paddingTop = computeMobileImageRect().top + 'px';
+    } else {
+      const fin = computeImageRect();
+      projectImg.style.transition = 'none';
+      projectImg.style.left = fin.left + 'px';
+      projectImg.style.top = fin.top + 'px';
+      projectImg.style.width = fin.width + 'px';
+      projectImg.style.height = fin.height + 'px';
+      positionProjectText(fin);
+    }
+  });
+
+  function animate() {
+    requestAnimationFrame(animate);
+    const dt = Math.min(clock.getDelta(), 0.05);
+    step(dt);
+    renderer.render(scene, camera);
+  }
+
+  // ----------------------------------------------------------------------
+  // Boot: fetch real content, then build & start the orbit
+  // ----------------------------------------------------------------------
+  async function boot() {
+    const [proj, sett] = await Promise.all([fetchProjects(), fetchSettings()]);
+    projects = (proj && proj.length) ? proj : STATIC_PROJECTS;
+    settings = sett || {};
+
+    IMAGES = projects.map(p => localize(p.cover_url || 'images/01.jpg'));
+    PROJECT_NAMES = projects.map(p => p.title);
+    baseDirs = fibonacciSphere(IMAGES.length);
+
+    layout();          // sizes the sphere from baseDirs (so nothing clips)
+    buildCards();
+    buildLogoWhenReady();
+    populateInfo();
+    clock.getDelta();  // reset the clock so entrance timing starts now
+    animate();
+  }
+  boot();
+  </script>
+</body>
+</html>

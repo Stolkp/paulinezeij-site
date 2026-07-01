@@ -334,6 +334,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
             <button type="button" data-cmd="bold" title="Vet"><b>B</b></button>
             <button type="button" data-cmd="italic" title="Cursief"><i>I</i></button>
             <button type="button" data-cmd="heading" title="Koptekst">H</button>
+            <button type="button" data-cmd="link" title="Link toevoegen / bewerken">🔗</button>
+            <button type="button" data-cmd="btnlink" title="Toon link als knop">Knop</button>
             <button type="button" data-cmd="removeFormat" title="Opmaak verwijderen">✕</button>
           </div>
           <div class="rte-field" id="f-p1" contenteditable="true" placeholder="Beschrijf de serie..."></div>
@@ -346,6 +348,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
             <button type="button" data-cmd="bold" title="Vet"><b>B</b></button>
             <button type="button" data-cmd="italic" title="Cursief"><i>I</i></button>
             <button type="button" data-cmd="heading" title="Koptekst">H</button>
+            <button type="button" data-cmd="link" title="Link toevoegen / bewerken">🔗</button>
+            <button type="button" data-cmd="btnlink" title="Toon link als knop">Knop</button>
             <button type="button" data-cmd="removeFormat" title="Opmaak verwijderen">✕</button>
           </div>
           <div class="rte-field" id="f-p2" contenteditable="true" placeholder="Techniek, materialen..."></div>
@@ -358,6 +362,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
             <button type="button" data-cmd="bold" title="Vet"><b>B</b></button>
             <button type="button" data-cmd="italic" title="Cursief"><i>I</i></button>
             <button type="button" data-cmd="heading" title="Koptekst">H</button>
+            <button type="button" data-cmd="link" title="Link toevoegen / bewerken">🔗</button>
+            <button type="button" data-cmd="btnlink" title="Toon link als knop">Knop</button>
             <button type="button" data-cmd="removeFormat" title="Opmaak verwijderen">✕</button>
           </div>
           <div class="rte-field" id="f-p3" contenteditable="true" placeholder="Contact of bestelinfo..."></div>
@@ -598,6 +604,27 @@ function renderImgGrid() {
 }
 
 // ---- Rich text editor toolbar ----
+// Externe links openen in een nieuw tabblad; mailto/tel/interne niet
+function setLinkTarget(a) {
+  const href = (a.getAttribute('href') || '').trim();
+  if (/^https?:\/\//i.test(href)) {
+    a.setAttribute('target', '_blank');
+    a.setAttribute('rel', 'noopener');
+  } else {
+    a.removeAttribute('target');
+    a.removeAttribute('rel');
+  }
+}
+// Vind het <a>-element op de huidige cursor/selectie binnen een RTE-veld
+function anchorFromSelection(field) {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return null;
+  let node = sel.getRangeAt(0).startContainer;
+  if (node.nodeType === 3) node = node.parentElement;
+  const a = node && node.closest ? node.closest('a') : null;
+  return (a && field.contains(a)) ? a : null;
+}
+
 document.querySelectorAll('.rte-toolbar').forEach(toolbar => {
   toolbar.addEventListener('mousedown', e => {
     const btn = e.target.closest('button[data-cmd]');
@@ -607,7 +634,28 @@ document.querySelectorAll('.rte-toolbar').forEach(toolbar => {
     const field = document.getElementById(rteId);
     field.focus();
     const cmd = btn.dataset.cmd;
-    if (cmd === 'heading') {
+    if (cmd === 'link') {
+      const existing = anchorFromSelection(field);
+      const current = existing ? existing.getAttribute('href') || '' : '';
+      const url = window.prompt('Link-adres (bv. https://… , mailto:… of tel:…). Leeg = link verwijderen.', current);
+      if (url === null) return;              // geannuleerd
+      const val = url.trim();
+      if (existing) {
+        if (!val) { document.execCommand('unlink'); }
+        else { existing.setAttribute('href', val); setLinkTarget(existing); }
+      } else {
+        const sel = window.getSelection();
+        if (!val) return;
+        if (!sel || sel.isCollapsed) { toast('Selecteer eerst de tekst die een link moet worden'); return; }
+        document.execCommand('createLink', false, val);
+        const made = anchorFromSelection(field);
+        if (made) setLinkTarget(made);
+      }
+    } else if (cmd === 'btnlink') {
+      const a = anchorFromSelection(field);
+      if (!a) { toast('Zet de cursor eerst in een link'); return; }
+      a.classList.toggle('pz-btn');
+    } else if (cmd === 'heading') {
       const sel = window.getSelection();
       if (sel && sel.rangeCount) {
         const range = sel.getRangeAt(0);
@@ -634,6 +682,9 @@ document.querySelectorAll('.rte-toolbar').forEach(toolbar => {
     toolbar.querySelectorAll('button').forEach(b => b.classList.remove('active'));
     if (document.queryCommandState('bold')) toolbar.querySelector('[data-cmd=bold]')?.classList.add('active');
     if (document.queryCommandState('italic')) toolbar.querySelector('[data-cmd=italic]')?.classList.add('active');
+    const curA = anchorFromSelection(field);
+    if (curA) toolbar.querySelector('[data-cmd=link]')?.classList.add('active');
+    if (curA && curA.classList.contains('pz-btn')) toolbar.querySelector('[data-cmd=btnlink]')?.classList.add('active');
   });
 });
 

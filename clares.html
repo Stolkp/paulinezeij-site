@@ -217,6 +217,33 @@
   #p-body p a:hover { text-decoration-color: #1E1B18; }
   #p-body p h3 { font-size: 1rem; font-weight: 400; margin: 0.25rem 0; color: #1E1B18; }
 
+  /* links opgemaakt als knop (class gezet via het CMS) */
+  #p-body p a.pz-btn,
+  #p-body a.pz-btn {
+    display: inline-flex;
+    align-items: center;
+    margin: 0.5rem 0.6rem 0 0;
+    padding: 0.7em 1.4em;
+    font-family: 'Tenor Sans', serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: #1E1B18;
+    background: transparent;
+    border: 1px solid #1E1B18;
+    border-radius: 999px;
+    line-height: 1;
+    word-break: normal;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+  #p-body p a.pz-btn:hover,
+  #p-body a.pz-btn:hover {
+    background: #1E1B18;
+    color: var(--bg, #F5F1EC);
+    text-decoration: none;
+  }
+
   /* thumbnail strip of the series' detail photos */
   #p-images {
     display: flex;

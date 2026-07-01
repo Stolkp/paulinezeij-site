@@ -377,6 +377,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </div>
 </div>
 
+<!-- Link/knop dialoog -->
+<div class="modal-overlay" id="link-modal">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <h2 id="link-modal-title">Link toevoegen</h2>
+      <button type="button" id="link-modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="link-text">Tekst (naam)</label>
+        <input type="text" id="link-text" placeholder="Bijv. Het boek van Joek" />
+      </div>
+      <div class="field" style="margin-bottom:14px;">
+        <label for="link-url">Link-adres</label>
+        <input type="text" id="link-url" placeholder="https://…  ·  mailto:…  ·  tel:…" />
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;user-select:none;">
+        <input type="checkbox" id="link-asbtn" style="width:auto;" /> Als knop tonen (pill)
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="link-modal-cancel">Annuleren</button>
+      <button class="btn btn-primary" id="link-modal-save">Opslaan</button>
+    </div>
+  </div>
+</div>
+
 <!-- Uploading overlay -->
 <div class="uploading-overlay" id="uploading-overlay">
   <div class="spinner"></div>
@@ -634,27 +661,9 @@ document.querySelectorAll('.rte-toolbar').forEach(toolbar => {
     const field = document.getElementById(rteId);
     field.focus();
     const cmd = btn.dataset.cmd;
-    if (cmd === 'link') {
-      const existing = anchorFromSelection(field);
-      const current = existing ? existing.getAttribute('href') || '' : '';
-      const url = window.prompt('Link-adres (bv. https://… , mailto:… of tel:…). Leeg = link verwijderen.', current);
-      if (url === null) return;              // geannuleerd
-      const val = url.trim();
-      if (existing) {
-        if (!val) { document.execCommand('unlink'); }
-        else { existing.setAttribute('href', val); setLinkTarget(existing); }
-      } else {
-        const sel = window.getSelection();
-        if (!val) return;
-        if (!sel || sel.isCollapsed) { toast('Selecteer eerst de tekst die een link moet worden'); return; }
-        document.execCommand('createLink', false, val);
-        const made = anchorFromSelection(field);
-        if (made) setLinkTarget(made);
-      }
-    } else if (cmd === 'btnlink') {
-      const a = anchorFromSelection(field);
-      if (!a) { toast('Zet de cursor eerst in een link'); return; }
-      a.classList.toggle('pz-btn');
+    if (cmd === 'link' || cmd === 'btnlink') {
+      openLinkDialog(field, cmd === 'btnlink');
+      return;                                // dialoog neemt het over
     } else if (cmd === 'heading') {
       const sel = window.getSelection();
       if (sel && sel.rangeCount) {
@@ -687,6 +696,69 @@ document.querySelectorAll('.rte-toolbar').forEach(toolbar => {
     if (curA && curA.classList.contains('pz-btn')) toolbar.querySelector('[data-cmd=btnlink]')?.classList.add('active');
   });
 });
+
+// ---- Link/knop dialoog ----
+let linkDlg = null; // { field, anchor, range }
+const linkModal   = document.getElementById('link-modal');
+const linkTextIn  = document.getElementById('link-text');
+const linkUrlIn   = document.getElementById('link-url');
+const linkAsBtnIn = document.getElementById('link-asbtn');
+
+function openLinkDialog(field, asBtnDefault) {
+  const anchor = anchorFromSelection(field);
+  const sel = window.getSelection();
+  let range = null, selText = '';
+  if (sel && sel.rangeCount) {
+    const r = sel.getRangeAt(0);
+    if (field.contains(r.commonAncestorContainer)) { range = r.cloneRange(); selText = sel.isCollapsed ? '' : sel.toString(); }
+  }
+  linkDlg = { field, anchor, range };
+  linkTextIn.value  = anchor ? anchor.textContent : selText;
+  linkUrlIn.value   = anchor ? (anchor.getAttribute('href') || '') : '';
+  linkAsBtnIn.checked = asBtnDefault || (anchor ? anchor.classList.contains('pz-btn') : false);
+  document.getElementById('link-modal-title').textContent = anchor ? 'Link bewerken' : 'Link toevoegen';
+  linkModal.classList.add('open');
+  setTimeout(() => (linkUrlIn.value ? linkTextIn : linkUrlIn).focus(), 30);
+}
+
+function closeLinkDialog() { linkModal.classList.remove('open'); linkDlg = null; }
+
+function saveLinkDialog() {
+  if (!linkDlg) return;
+  const { field, anchor, range } = linkDlg;
+  const text = linkTextIn.value.trim();
+  const url  = linkUrlIn.value.trim();
+  const asBtn = linkAsBtnIn.checked;
+
+  if (!url) {                                // geen URL → link verwijderen (tekst blijft)
+    if (anchor) anchor.replaceWith(document.createTextNode(anchor.textContent));
+    closeLinkDialog();
+    return;
+  }
+  if (anchor) {                              // bestaande link bijwerken
+    anchor.setAttribute('href', url);
+    anchor.textContent = text || url;
+    setLinkTarget(anchor);
+    anchor.classList.toggle('pz-btn', asBtn);
+    if (!anchor.classList.length) anchor.removeAttribute('class');
+  } else {                                    // nieuwe link invoegen
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.textContent = text || url;
+    if (asBtn) a.classList.add('pz-btn');
+    setLinkTarget(a);
+    if (range) { range.deleteContents(); range.insertNode(a); }
+    else field.appendChild(a);
+  }
+  closeLinkDialog();
+}
+
+document.getElementById('link-modal-save').addEventListener('click', saveLinkDialog);
+document.getElementById('link-modal-cancel').addEventListener('click', closeLinkDialog);
+document.getElementById('link-modal-close').addEventListener('click', closeLinkDialog);
+linkModal.addEventListener('click', e => { if (e.target === linkModal) closeLinkDialog(); });
+linkUrlIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveLinkDialog(); } });
+linkTextIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveLinkDialog(); } });
 
 document.getElementById('add-project-btn').addEventListener('click', () => openModal());
 document.getElementById('modal-close').addEventListener('click', closeModal);

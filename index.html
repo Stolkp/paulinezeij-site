@@ -1362,6 +1362,7 @@
     if (mode !== 'hero') return;
     mode = 'enter';
     activeCard = i;
+    syncHistory('/' + (projects[i] && projects[i].slug ? projects[i].slug : ''));
     dragging = false; canvas.classList.remove('dragging');
     document.body.classList.add('reading');
     hoveredIndex = -1;
@@ -1427,6 +1428,7 @@
   function returnToHero() {
     if (mode !== 'project') return;
     mode = 'exit';
+    syncHistory('/');
     document.body.classList.remove('reading');
 
     const outDelays = [0.30, 0.24, 0.18, 0.12, 0.06, 0];
@@ -1551,10 +1553,43 @@
   // ----------------------------------------------------------------------
   // Boot: fetch real content, then build & start the orbit
   // ----------------------------------------------------------------------
+  // ---- Deelbare project-URL's (pad-routing, bv. /joek-de-serie) ----
+  function slugify(s) {
+    return (s || '').toString().toLowerCase().trim()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')   // accenten weg
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+  let suppressHistory = false;                            // voorkomt dubbele/terug-loops
+  function assignSlugs() {
+    const seen = {};
+    projects.forEach((p, k) => {
+      let s = slugify(p.title) || ('serie-' + (k + 1));
+      if (seen[s] != null) s = s + '-' + (k + 1);         // botsing → uniek maken
+      seen[s] = k; p.slug = s;
+    });
+  }
+  function projectIndexFromPath() {
+    const slug = decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g, ''));
+    if (!slug) return -1;
+    return projects.findIndex(p => p.slug === slug);
+  }
+  function syncHistory(path) {
+    if (suppressHistory) return;
+    if (location.pathname !== path) history.pushState({}, '', path);
+  }
+  window.addEventListener('popstate', () => {
+    const i = projectIndexFromPath();
+    suppressHistory = true;
+    if (i < 0) { if (mode === 'project') returnToHero(); }
+    else if (mode === 'hero') { enterProject(i); }
+    suppressHistory = false;
+  });
+
   async function boot() {
     const [proj, sett] = await Promise.all([fetchProjects(), fetchSettings()]);
     projects = (proj && proj.length) ? proj : STATIC_PROJECTS;
     settings = sett || {};
+    assignSlugs();
 
     IMAGES = projects.map(p => localize(p.cover_url || 'images/01.jpg'));
     PROJECT_NAMES = projects.map(p => p.title);
@@ -1566,6 +1601,17 @@
     populateInfo();
     clock.getDelta();  // reset the clock so entrance timing starts now
     animate();
+
+    // Deeplink: als de URL al een serie-slug is, die serie direct openen
+    const di = projectIndexFromPath();
+    if (di >= 0) {
+      setTimeout(() => {
+        if (mode !== 'hero') return;
+        suppressHistory = true; enterProject(di); suppressHistory = false;
+      }, 900);
+    } else if (location.pathname !== '/') {
+      history.replaceState({}, '', '/');   // onbekend pad → nette root-URL
+    }
   }
   boot();
   </script>

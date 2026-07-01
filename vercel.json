@@ -2,5 +2,8 @@
   "cleanUrls": true,
   "redirects": [
     { "source": "/clares", "destination": "/", "permanent": true }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

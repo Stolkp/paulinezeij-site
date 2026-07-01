@@ -165,6 +165,11 @@
     position: fixed;
     color: var(--body-text, #404040);
   }
+  /* #project is pointer-events:none zodat de scène erachter niet blokkeert;
+     links/knoppen in de detailtekst moeten wél klikbaar zijn */
+  #project-text a { pointer-events: auto; }
+  /* in leesmodus is de 3D-scène niet sleepbaar → geen grab-cursor tonen */
+  body.reading #scene { cursor: default; }
 
   #p-title {
     position: absolute;
@@ -1358,6 +1363,7 @@
     mode = 'enter';
     activeCard = i;
     dragging = false; canvas.classList.remove('dragging');
+    document.body.classList.add('reading');
     hoveredIndex = -1;
 
     startFade(0, 0.5);
@@ -1421,6 +1427,7 @@
   function returnToHero() {
     if (mode !== 'project') return;
     mode = 'exit';
+    document.body.classList.remove('reading');
 
     const outDelays = [0.30, 0.24, 0.18, 0.12, 0.06, 0];
     revealEls.forEach((el, k) => { el.style.transitionDelay = outDelays[k] + 's'; el.classList.remove('show'); });
